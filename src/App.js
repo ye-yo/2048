@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled, { css, withTheme } from "styled-components";
 import './App.css';
 const gridSize = 4;
@@ -79,6 +79,14 @@ function App() {
   const [score, setscore] = useState(0);
   const [maxNumber, setMaxNumber] = useState(2);
   const [prevPosition, setPrevPosition] = useState({});
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [handleKeyDown])
+
   function handleMove() {
     const index = getRandomNumber(0, 3);
     let currentNumbers = [...numbers];
@@ -98,18 +106,18 @@ function App() {
     const xyDiff = Math.abs(xDiff) - Math.abs(yDiff);
     let direction = null;
     if (xyDiff > 0) {
-      if (xDiff - 20 > 0) {
-        direction = -1;
-      }
-      else if (xDiff + 20 < 0) {
+      if (xDiff + 20 < 0) {//left
         direction = 1;
+      }
+      else if (xDiff - 20 > 0) { //right
+        direction = -1;
       }
     }
     else if (xyDiff < 0) {
-      if (yDiff + 20 < 0) {
+      if (yDiff + 20 < 0) { //up
         direction = gridSize;
       }
-      else if (yDiff - 20 > 0) {
+      else if (yDiff - 20 > 0) { //down
         direction = -gridSize;
       }
     }
@@ -118,14 +126,32 @@ function App() {
 
   function handleToucheEnd(e) {
     const direction = getDirection(e);
+    slideNumbers(direction);
+  }
+
+  function slideNumbers(direction) {
     if (direction) {
       const newArray = slide(direction, [...numbers]);
       setNumbers([...newArray]);
     }
   }
 
+  function handleKeyDown(e) {
+    let direction = null;
+    switch (e.keyCode) {
+      case 37: direction = 1; break;
+      case 38: direction = 4; break;
+      case 39: direction = -1; break;
+      case 40: direction = -4; break;
+      default: break;
+    }
+    slideNumbers(direction);
+  }
+
   return (
-    <div className="App">
+    <div className="App"
+      onKeyDown={handleKeyDown}
+    >
       <Header>
         <Title>2048</Title>
       </Header>
