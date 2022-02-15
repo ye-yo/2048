@@ -3,7 +3,6 @@ import styled, { css, withTheme } from "styled-components";
 import './App.css';
 const gridSize = 4;
 const numberList = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
-// const defaultArray = Array(gridSize * gridSize).fill(null);
 const defaultArray = [0, 0, 0, 2, 2, 2, 4, 2, 0, 0, 0, 0, 2, 0, 0, 2];
 const colors = {
   2: { background: '#EBF5EE', color: '#669ca2' },
@@ -20,6 +19,7 @@ const colors = {
   4096: { background: '#d03862', color: 'white' },
   8192: { background: '#d03862', color: 'white' },
 };
+
 function getRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
@@ -42,7 +42,7 @@ function slide(direction, grid) {
     });
     let missing = gridSize - arr.length;
     let zeros = Array(missing).fill(0);
-    arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr); //뒤에서 밀어넣어서 채워짐.와우;
+    arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr);
     arr = combineCell(arr, direction > 0 ? 1 : -1);
     newArr = newArr.concat(arr);
   }
@@ -56,6 +56,7 @@ function slide(direction, grid) {
 }
 
 function combineCell(arr, direction) {
+  console.log(arr)
   const start = direction > 0 ? 0 : gridSize - 1;
   const end = direction > 0 ? gridSize - 1 : 0;
   for (var i = start; i != end; i = i + direction) {
@@ -65,12 +66,17 @@ function combineCell(arr, direction) {
         arr[i + direction] = 0;
       }
       else if (!arr[i]) {
-        arr[i] = arr[i + 1];
+        arr[i] = arr[i + direction];
         arr[i + direction] = 0;
       }
     }
   }
   return arr;
+}
+
+function equal(a, b) {
+  return a.length === b.length &&
+    a.every((v, i) => v === b[i]);
 }
 
 function App() {
@@ -131,8 +137,36 @@ function App() {
 
   function slideNumbers(direction) {
     if (direction) {
-      const newArray = slide(direction, [...numbers]);
-      setNumbers([...newArray]);
+      let newArray = slide(direction, [...numbers]);
+      console.log(newArray)
+
+      //바뀐게 있을 때만 new Tile
+      if (!equal(numbers, newArray)) {
+        const newTile = getNewTile(newArray);
+        console.log(newArray, newTile)
+        if (newTile) {
+          newArray[newTile.index] = newTile.number;
+          setNumbers([...newArray]);
+        }
+      }
+    }
+  }
+
+  function getNewTile(arr) {
+    let emptyPosition = [];
+    arr.map((number, index) => {
+      // console.log(index, number);
+      if (!number)
+        emptyPosition.push(index);
+    })
+    // console.log(emptyPosition)
+    if (emptyPosition) {
+      return {
+        index: emptyPosition[getRandomNumber(0, emptyPosition.length - 1)], number: numberList[getRandomNumber(0, 1)]
+      }
+    }
+    else {
+      return false;
     }
   }
 
@@ -158,7 +192,6 @@ function App() {
       <Main>
         <Container
           onTouchStart={handleTouchStart}
-          // onTouchMove={handleTouchMove}
           onTouchEnd={handleToucheEnd}
         >
           <GridContainer>
@@ -263,10 +296,14 @@ const Tile = styled(Cell)`
   text-align: center;
   font-size: 2em;
   font-weight: bold;
+  transform: 0;
+  /* transition: all .2s .2s; */
+  transition: transform 1s ease, top 1s ease;
   ${({ number, row, col }) => {
     return css`
       background-color: ${colors[number].background};
       color: ${colors[number].color};
+      /* transform: ${`translate(calc(${col} * ${defaultSize} + ${defaultMargin} * ${col}),calc(${row} * ${defaultSize} + ${defaultMargin} * ${row}))`}; */
       transform: ${`translate(calc(${col} * ${defaultSize} + ${defaultMargin} * ${col}),calc(${row} * ${defaultSize} + ${defaultMargin} * ${row}))`};
     `
   }}
