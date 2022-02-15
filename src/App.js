@@ -1,9 +1,10 @@
 import { useState } from "react";
-import testUtils from "react-dom/test-utils";
 import styled, { css, withTheme } from "styled-components";
 import './App.css';
+const gridSize = 4;
 const numberList = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
-const defaultArray = Array(4).fill(null).map(() => new Array(4).fill(2));
+// const defaultArray = Array(gridSize * gridSize).fill(null);
+const defaultArray = [0, 0, 0, 2, 2, 2, 4, 2, 0, 0, 0, 0, 2, 0, 0, 2];
 const colors = {
   2: { background: '#EBF5EE', color: '#669ca2' },
   4: { background: '#b2cbd5', color: 'white' },
@@ -23,11 +24,61 @@ function getRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
+function getPosition(event) {
+  return event._reactName == "onTouchStart" ? { x: event.touches[0].clientX, y: event.touches[0].clientY } :
+    (event._reactName == "onTouchMove" || event._reactName == "onTouchEnd") ? { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY } : { x: event.clientX, y: event.clientY };
+}
+
+function slide(direction, grid) {
+  let newArr = [];
+  const isUpDown = Math.abs(direction) > 1;
+  const max = isUpDown ? gridSize : gridSize * gridSize;
+  const addValue = isUpDown ? 1 : gridSize;
+  for (let i = 0; i < max; i = i + addValue) {
+    let arr = grid.filter((value, index) => {
+      return value && (isUpDown ?
+        (index % gridSize === i % gridSize) :
+        parseInt(index / gridSize) === parseInt(i / gridSize))
+    });
+    let missing = gridSize - arr.length;
+    let zeros = Array(missing).fill(0);
+    arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr); //뒤에서 밀어넣어서 채워짐.와우;
+    arr = combineCell(arr, direction > 0 ? 1 : -1);
+    newArr = newArr.concat(arr);
+  }
+  if (Math.abs(direction) > 1) {
+    const originArr = [...newArr];
+    originArr.map((number, index) => {
+      newArr[(index % gridSize) * gridSize + (parseInt(index / gridSize))] = number;
+    })
+  }
+  return newArr;
+}
+
+function combineCell(arr, direction) {
+  const start = direction > 0 ? 0 : gridSize - 1;
+  const end = direction > 0 ? gridSize - 1 : 0;
+  for (var i = start; i != end; i = i + direction) {
+    if (arr[i + direction]) {
+      if (arr[i] === arr[i + direction] && arr[i]) {
+        arr[i] = arr[i] * 2;
+        arr[i + direction] = 0;
+      }
+      else if (!arr[i]) {
+        arr[i] = arr[i + 1];
+        arr[i + direction] = 0;
+      }
+    }
+  }
+  return arr;
+}
+
 function App() {
 
   const [numbers, setNumbers] = useState(defaultArray);
   const [score, setscore] = useState(0);
   const [maxNumber, setMaxNumber] = useState(2);
+  const [prevPosition, setPrevPosition] = useState({});
   function handleMove() {
     const index = getRandomNumber(0, 3);
     let currentNumbers = [...numbers];
@@ -35,8 +86,42 @@ function App() {
     setNumbers(currentNumbers);
   }
 
-  function getEmptyPosition() {
+  function handleTouchStart(e) {
+    const newPosition = getPosition(e);
+    setPrevPosition({ ...prevPosition, ...newPosition })
+  }
 
+  function getDirection(e) {
+    const currentPosition = getPosition(e);
+    const xDiff = currentPosition.x - prevPosition.x;
+    const yDiff = currentPosition.y - prevPosition.y;
+    const xyDiff = Math.abs(xDiff) - Math.abs(yDiff);
+    let direction = null;
+    if (xyDiff > 0) {
+      if (xDiff - 20 > 0) {
+        direction = -1;
+      }
+      else if (xDiff + 20 < 0) {
+        direction = 1;
+      }
+    }
+    else if (xyDiff < 0) {
+      if (yDiff + 20 < 0) {
+        direction = gridSize;
+      }
+      else if (yDiff - 20 > 0) {
+        direction = -gridSize;
+      }
+    }
+    return direction;
+  }
+
+  function handleToucheEnd(e) {
+    const direction = getDirection(e);
+    if (direction) {
+      const newArray = slide(direction, [...numbers]);
+      setNumbers([...newArray]);
+    }
   }
 
   return (
@@ -45,26 +130,24 @@ function App() {
         <Title>2048</Title>
       </Header>
       <Main>
-        <Container>
+        <Container
+          onTouchStart={handleTouchStart}
+          // onTouchMove={handleTouchMove}
+          onTouchEnd={handleToucheEnd}
+        >
           <GridContainer>
-            {numbers.map((row, rowIndex) =>
-              <GridRow key={`grid-${rowIndex}`}>
-                {row.map((number, colIndex) =>
-                  <GridCell key={`${rowIndex}x${colIndex}`}>
-                  </GridCell>
-                )}
-              </GridRow>
+            {numbers.map((row, index) =>
+              <GridCell key={`cell-${index}`} row={parseInt(index / gridSize)} col={index % gridSize}>
+              </GridCell>
             )}
           </GridContainer>
           <TileContainer>
-            {numbers.map((row, rowIndex) =>
-              row.map((number, colIndex) =>
-                number &&
-                <Tile key={`tile-${colIndex}`} number={number} row={rowIndex} col={colIndex}>
+            {numbers.map((number, index) => {
+              if (number)
+                return <Tile key={`tile-${index}`} number={number} row={parseInt(index / gridSize)} col={index % gridSize}>
                   {number}
                 </Tile>
-              )
-            )}
+            })}
           </TileContainer>
         </Container>
         <button onClick={handleMove}>추가</button>
@@ -104,13 +187,18 @@ const Container = styled.section`
 `;
 
 const GridContainer = styled.div`
-  width: fit-content;
-  height: fit-content;
+  display:flex;
+  flex-direction: row;
+  flex-wrap:wrap;
+  ${({ row, col }) => {
+    return css`
+      width: ${`calc(${defaultSize} * ${gridSize} + ${defaultMargin} * ${gridSize - 1})`};
+      height: ${`calc(${defaultSize} * ${gridSize} + ${defaultMargin} * ${gridSize - 1})`};
+    `;
+  }}
 `;
 const GridRow = styled.div`
   width: 100%;
-  width: fit-content;
-  height: fit-content;
   flex: 1;
   border-radius: 6px;
   margin-bottom: ${defaultMargin};
@@ -128,13 +216,15 @@ const Cell = styled.div`
   max-width: 140px;
   max-height: 140px;
   border-radius: 3px;
+  ${({ row, col }) => {
+    return css`
+      margin-bottom: ${row < gridSize - 1 ? defaultMargin : 0};
+      margin-right: ${col < gridSize - 1 ? defaultMargin : 0};
+    `;
+  }}
 `;
 const GridCell = styled(Cell)`
-  margin-right: ${defaultMargin};
   background-color: #b2cbd5;
-  &:last-child{
-    margin-right: 0;
-  }
 `;
 
 const TileContainer = styled.div`
@@ -148,7 +238,6 @@ const Tile = styled(Cell)`
   font-size: 2em;
   font-weight: bold;
   ${({ number, row, col }) => {
-    console.log(number)
     return css`
       background-color: ${colors[number].background};
       color: ${colors[number].color};
