@@ -89,12 +89,15 @@ function combineCell(rootIndex, arr, direction) {
             isCombined: true
           }
           arr[i] = getTileObject(position, arr[i], changedTile);
-          arr.splice(i + directionValue, 1, 0);
+          arr.splice(i + directionValue, 1)
+          direction > 0 ? arr.push(0) : arr.unshift(0);
+          console.log(arr)
           continue;
         }
         else if (!arr[i]) {
           arr[i] = getTileObject(position, arr[i + directionValue], arr[i + directionValue]);
-          arr.splice(i + directionValue, 1, 0);
+          arr.splice(i + directionValue, 1)
+          direction > 0 ? arr.push(0) : arr.unshift(0);
           continue;
         }
       }
