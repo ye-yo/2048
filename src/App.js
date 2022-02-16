@@ -130,13 +130,13 @@ function App() {
 
   function slideNumbers(direction) {
     if (direction) {
-      setBeRemovedTiles([]);
-      let newArray = slide(direction, [...numbers]);
+      let { newArray, combinedArray } = slide(direction, [...numbers]);
       if (isChanged(newArray)) {
         const newTile = getNewTile(newArray);
         if (newTile) {
           newArray[newTile.index] = newTile;
           setNumbers([...newArray]);
+          setBeRemovedTiles([...combinedArray]);
         }
       }
     }
@@ -172,12 +172,13 @@ function App() {
     }
     slideNumbers(direction);
   }
-  console.log(numbers);
+  // console.log(numbers);
   function slide(direction, grid) {
     let newArr = Array(gridSize * gridSize).fill(0);
     const isUpDown = Math.abs(direction) > 1;
     const max = isUpDown ? gridSize : gridSize * gridSize;
     const addValue = isUpDown ? 1 : gridSize;
+    let combinedArray = [];
     for (let i = 0; i < max; i = i + addValue) {
       let arr = grid.filter((tile, index) => {
         return tile.number && (isUpDown ?
@@ -189,14 +190,16 @@ function App() {
       arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr);
       if (zeros.length < gridSize) {
         const rootIndex = isUpDown ? getCol(i) : getRow(i);
-        newArr = combineCell(arr, newArr, direction, rootIndex);
-
+        const { movedArray, combinedRowArray } = combineCell(arr, newArr, direction, rootIndex);
+        newArr = movedArray;
+        combinedArray = combinedRowArray;
       }
-      console.log(newArr)
+      // console.log(newArr)
     }
-    return newArr;
+    return { newArray: newArr, combinedArray };
   }
   function combineCell(arr, resultArray, direction, rootIndex) {
+    let combinedRowArray = [];
     const isUpDown = Math.abs(direction) > 1,
       directionValue = direction > 0 ? 1 : -1,
       start = directionValue > 0 ? 0 : gridSize - 1,
@@ -214,6 +217,7 @@ function App() {
             }
             resultArray[realIndex] = getTileObject(position, arr[i], changedTile);
             resultArray[realIndex].isCombined = true;
+            console.log("combined", beRemovedTiles);
             const { row, col, number } = arr[i + directionValue];
             arr[i + directionValue] = {
               prevRow: row,
@@ -222,7 +226,7 @@ function App() {
               col: position.col,
               number
             }
-            setBeRemovedTiles([...beRemovedTiles, arr[i + directionValue]]);
+            combinedRowArray.push(arr[i + directionValue]);
             arr.splice(i + directionValue, 1)
             direction > 0 ? arr.push(0) : arr.unshift(0);
             continue;
@@ -239,8 +243,9 @@ function App() {
         resultArray[realIndex] = getTileObject(position, arr[i], arr[i])
       }
     }
-    return resultArray;
+    return { movedArray: resultArray, combinedRowArray };
   }
+  console.log(beRemovedTiles);
 
   // console.log(beRemovedTiles)
   return (
@@ -271,8 +276,6 @@ function App() {
               if (tile)
                 return <Tile key={`tile-${index}`} tile={tile}>
                   {tile.number}
-                  {tile.isNew && 'new'}
-                  {tile.isCombined && 'combined'}
                 </Tile>
             })}
           </TileContainer>
