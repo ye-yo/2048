@@ -120,7 +120,7 @@ function getTileObject({ row, col }, prev, current) {
 function isChanged(arr) {
   let changed = false;
   arr.map((tile) => {
-    if (tile.prevRow !== tile.row || tile.prevCol !== tile.col) {
+    if (tile.prevRow !== tile.row || tile.prevCol !== tile.col || tile.prevNumber !== tile.number) {
       changed = true;
       return false;
     }
