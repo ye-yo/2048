@@ -84,7 +84,7 @@ export const Board = styled.div`
     }
 `
 
-const ScoreBoard = ({ score, best }) => (
+const ScoreBoard = ({ score, bestScore }) => (
     <Board>
         <div>
             <label>SCORE</label>
@@ -92,7 +92,7 @@ const ScoreBoard = ({ score, best }) => (
         </div>
         <div>
             <label>BEST</label>
-            <p>{best}</p>
+            <p>{bestScore}</p>
         </div>
     </Board>
 );
@@ -117,14 +117,14 @@ export const Button = styled.button`
     }
 `;
 
-export const Header = ({ children }) => (
+export const Header = ({ children, score, bestScore }) => (
     <HeaderWrap>
         <Heading>
             <TitleWrap>
                 <span className="title">2048</span>
                 <span className="sub-title">⭐️ Space Ver.</span>
             </TitleWrap>
-            <ScoreBoard></ScoreBoard>
+            <ScoreBoard score={score} bestScore={bestScore} />
         </Heading>
         <SubText>
             <p>🌙 made by yeyo</p>

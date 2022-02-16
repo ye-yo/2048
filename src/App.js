@@ -48,18 +48,28 @@ function getRowAndCol(index) {
   return { row: parseInt(index / gridSize), col: index % gridSize };
 }
 
+const storedBestScoreKey = '2048_best';
 function App() {
 
   const [numbers, setNumbers] = useState(defaultArray);
   const [beRemovedTiles, setBeRemovedTiles] = useState([]);
   const [score, setscore] = useState(0);
-  const [maxNumber, setMaxNumber] = useState(2);
+  const [bestScore, setBestScore] = useState(0);
   const [prevPosition, setPrevPosition] = useState({});
 
   useEffect(() => {
     setInitTile()
+    const storedBestScore = localStorage.getItem(storedBestScoreKey);
+    if (storedBestScore)
+      setBestScore(storedBestScore);
   }, [])
 
+  useEffect(() => {
+    if (bestScore < score) {
+      setBestScore(score);
+      localStorage.setItem(storedBestScoreKey, score);
+    }
+  }, [score])
   function setInitTile() {
     setBeRemovedTiles([]);
     setscore(0);
@@ -72,7 +82,7 @@ function App() {
       setNumbers(newNumbers);
     }
   }
-  console.log(numbers)
+  // console.log(numbers)
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -205,8 +215,9 @@ function App() {
       if (i + directionValue !== end) {
         if (arr[i + directionValue]) {
           if (arr[i].number === arr[i + directionValue].number && arr[i].number) {
+            const addedValue = arr[i].number * 2;
             const changedTile = {
-              number: arr[i].number * 2,
+              number: addedValue,
               row: arr[i].row,
               col: arr[i].col,
             }
@@ -221,6 +232,7 @@ function App() {
               number
             }
             combinedRowArray.push(arr[i + directionValue]);
+            setscore(score => score + addedValue)
             arr.splice(i + directionValue, 1)
             direction > 0 ? arr.push(0) : arr.unshift(0);
             continue;
@@ -245,7 +257,7 @@ function App() {
     <div className="App"
       onKeyDown={handleKeyDown}
     >
-      <Header>
+      <Header score={score} bestScore={bestScore}>
         <Button onClick={setInitTile}>New Game</Button>
       </Header>
       <Main>
