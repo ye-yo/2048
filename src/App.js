@@ -117,9 +117,15 @@ function getTileObject({ row, col }, prev, current) {
   }
 }
 
-function equal(a, b) {
-  return a.length === b.length &&
-    a.every((v, i) => v === b[i]);
+function isChanged(arr) {
+  let changed = false;
+  arr.map((tile) => {
+    if (tile.prevRow !== tile.row || tile.prevCol !== tile.col) {
+      changed = true;
+      return false;
+    }
+  })
+  return changed;
 }
 
 function getRowAndCol(index) {
@@ -193,7 +199,7 @@ function App() {
   function slideNumbers(direction) {
     if (direction) {
       let newArray = slide(direction, [...numbers]);
-      if (!equal(numbers, newArray)) {
+      if (isChanged(newArray)) {
         const newTile = getNewTile(newArray);
         if (newTile) {
           newArray[newTile.index] = newTile;
