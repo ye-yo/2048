@@ -112,6 +112,9 @@ export const Button = styled.button`
     background-color: #4d539485;
     color:white;
     border: 1px solid white;
+    &:hover{
+        background-color: #2f335d;
+    }
 `;
 
 export const Header = ({ children }) => (

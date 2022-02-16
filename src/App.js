@@ -57,14 +57,22 @@ function App() {
   const [prevPosition, setPrevPosition] = useState({});
 
   useEffect(() => {
+    setInitTile()
+  }, [])
+
+  function setInitTile() {
+    setBeRemovedTiles([]);
+    setscore(0);
     const newTile = getNewTile(numbers, true);
     const newTile2 = getNewTile(numbers, newTile.index);
     if (newTile && newTile2) {
-      numbers[newTile.index] = newTile;
-      numbers[newTile2.index] = newTile2;
-      setNumbers([...numbers]);
+      const newNumbers = [...defaultArray];
+      newNumbers[newTile.index] = newTile;
+      newNumbers[newTile2.index] = newTile2;
+      setNumbers(newNumbers);
     }
-  }, [])
+  }
+  console.log(numbers)
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -232,12 +240,13 @@ function App() {
     return { movedArray: resultArray, combinedRowArray };
   }
   // console.log(beRemovedTiles);
+
   return (
     <div className="App"
       onKeyDown={handleKeyDown}
     >
       <Header>
-        <Button>New Game</Button>
+        <Button onClick={setInitTile}>New Game</Button>
       </Header>
       <Main>
         <Container

@@ -12,7 +12,6 @@ body{
   position: relative;
   overflow: hidden;
 }
-
 @media screen and (max-width: 640px){
   html{
     font-size: 2vmin;
