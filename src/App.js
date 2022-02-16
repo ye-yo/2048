@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import './App.css';
-import { Header, Title, Main, Container, GridContainer, GridCell, TileContainer, Tile } from "./style.js";
+import { Header, Button, Main, Container, GridContainer, GridCell, TileContainer, Tile, BackGraphic, GameModal } from "./style.js";
 const gridSize = 4;
 const numberList = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
 let count = 0;
@@ -232,14 +232,12 @@ function App() {
     return { movedArray: resultArray, combinedRowArray };
   }
   // console.log(beRemovedTiles);
-
-  // console.log(beRemovedTiles)
   return (
     <div className="App"
       onKeyDown={handleKeyDown}
     >
       <Header>
-        <Title>2048</Title>
+        <Button>New Game</Button>
       </Header>
       <Main>
         <Container
@@ -266,8 +264,8 @@ function App() {
             })}
           </TileContainer>
         </Container>
-        <button onClick={handleMove}>추가</button>
       </Main>
+      <BackGraphic></BackGraphic>
     </div >
   );
 }
