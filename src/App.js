@@ -32,82 +32,8 @@ function getPosition(event) {
 
 const getRow = (i) => parseInt(i / gridSize);
 const getCol = (i) => i % gridSize;
-function slide(direction, grid) {
-  let newArr = [];
-  const isUpDown = Math.abs(direction) > 1;
-  const max = isUpDown ? gridSize : gridSize * gridSize;
-  const addValue = isUpDown ? 1 : gridSize;
-  for (let i = 0; i < max; i = i + addValue) {
-    let arr = grid.filter((tile, index) => {
-      return tile.number && (isUpDown ?
-        (index % gridSize === i % gridSize) :
-        parseInt(index / gridSize) === parseInt(i / gridSize))
-    });
-    let missing = gridSize - arr.length;
-    let zeros = Array(missing).fill(0);
-    arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr);
-    const rootIndex = isUpDown ? getCol(i) : getRow(i);
-    arr = combineCell(rootIndex, arr, direction);
-    newArr = newArr.concat(arr);
-  }
-  if (isUpDown) {
-    const originArr = [...newArr];
-    // console.log(originArr)
-    originArr.map((tile, index) => {
-      if (tile) {
-        const newIndex = (index % gridSize) * gridSize + (parseInt(index / gridSize));
-        if (newIndex !== index) {
-          const { row, col } = getRowAndCol(newIndex);
-          if (!newArr[index].switched) {
-            newArr[index] = 0;
-          }
-          tile.row = row;
-          tile.col = col;
-          tile.switched = true;
-          newArr[newIndex] = tile;
-        }
-      }
-    })
-    // console.log(newArr)
-  }
-  return newArr;
-}
 
-function combineCell(rootIndex, arr, direction) {
-  const directionValue = direction > 0 ? 1 : -1;
-  const start = directionValue > 0 ? 0 : gridSize - 1;
-  const end = directionValue > 0 ? gridSize : -1;
-  for (var i = start; i !== end; i = i + directionValue) {
-    const position = { row: rootIndex, col: i };
-    if (i + directionValue !== end) {
-      if (arr[i + directionValue]) {
-        if (arr[i].number === arr[i + directionValue].number && arr[i].number) {
-          const changedTile = {
-            number: arr[i].number * 2,
-            row: arr[i].row,
-            col: arr[i].col,
-            isCombined: true
-          }
-          arr[i] = getTileObject(position, arr[i], changedTile);
-          arr.splice(i + directionValue, 1)
-          direction > 0 ? arr.push(0) : arr.unshift(0);
-          console.log(arr)
-          continue;
-        }
-        else if (!arr[i]) {
-          arr[i] = getTileObject(position, arr[i + directionValue], arr[i + directionValue]);
-          arr.splice(i + directionValue, 1)
-          direction > 0 ? arr.push(0) : arr.unshift(0);
-          continue;
-        }
-      }
-    }
-    if (arr[i]) {
-      arr[i] = getTileObject(position, arr[i], arr[i])
-    }
-  }
-  return arr;
-}
+
 
 function getTileObject({ row, col }, prev, current) {
   return {
@@ -138,6 +64,7 @@ function getRowAndCol(index) {
 function App() {
 
   const [numbers, setNumbers] = useState(defaultArray);
+  const [beRemovedTiles, setBeRemovedTiles] = useState([]);
   const [score, setscore] = useState(0);
   const [maxNumber, setMaxNumber] = useState(2);
   const [prevPosition, setPrevPosition] = useState({});
@@ -203,6 +130,7 @@ function App() {
 
   function slideNumbers(direction) {
     if (direction) {
+      setBeRemovedTiles([]);
       let newArray = slide(direction, [...numbers]);
       if (isChanged(newArray)) {
         const newTile = getNewTile(newArray);
@@ -245,7 +173,76 @@ function App() {
     slideNumbers(direction);
   }
   console.log(numbers);
+  function slide(direction, grid) {
+    let newArr = Array(gridSize * gridSize).fill(0);
+    const isUpDown = Math.abs(direction) > 1;
+    const max = isUpDown ? gridSize : gridSize * gridSize;
+    const addValue = isUpDown ? 1 : gridSize;
+    for (let i = 0; i < max; i = i + addValue) {
+      let arr = grid.filter((tile, index) => {
+        return tile.number && (isUpDown ?
+          (index % gridSize === i % gridSize) :
+          parseInt(index / gridSize) === parseInt(i / gridSize))
+      });
+      let missing = gridSize - arr.length;
+      let zeros = Array(missing).fill(0);
+      arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr);
+      if (zeros.length < gridSize) {
+        const rootIndex = isUpDown ? getCol(i) : getRow(i);
+        newArr = combineCell(arr, newArr, direction, rootIndex);
 
+      }
+      console.log(newArr)
+    }
+    return newArr;
+  }
+  function combineCell(arr, resultArray, direction, rootIndex) {
+    const isUpDown = Math.abs(direction) > 1,
+      directionValue = direction > 0 ? 1 : -1,
+      start = directionValue > 0 ? 0 : gridSize - 1,
+      end = directionValue > 0 ? gridSize : -1;
+    for (var i = start; i !== end; i = i + directionValue) {
+      const position = { row: isUpDown ? i : rootIndex, col: isUpDown ? rootIndex : i };
+      const realIndex = position.row * gridSize + position.col;
+      if (i + directionValue !== end) {
+        if (arr[i + directionValue]) {
+          if (arr[i].number === arr[i + directionValue].number && arr[i].number) {
+            const changedTile = {
+              number: arr[i].number * 2,
+              row: arr[i].row,
+              col: arr[i].col,
+            }
+            resultArray[realIndex] = getTileObject(position, arr[i], changedTile);
+            resultArray[realIndex].isCombined = true;
+            const { row, col, number } = arr[i + directionValue];
+            arr[i + directionValue] = {
+              prevRow: row,
+              prevCol: col,
+              row: position.row,
+              col: position.col,
+              number
+            }
+            setBeRemovedTiles([...beRemovedTiles, arr[i + directionValue]]);
+            arr.splice(i + directionValue, 1)
+            direction > 0 ? arr.push(0) : arr.unshift(0);
+            continue;
+          }
+          else if (!arr[i]) {
+            resultArray[realIndex] = getTileObject(position, arr[i + directionValue], arr[i + directionValue]);
+            arr.splice(i + directionValue, 1)
+            direction > 0 ? arr.push(0) : arr.unshift(0);
+            continue;
+          }
+        }
+      }
+      if (arr[i]) {
+        resultArray[realIndex] = getTileObject(position, arr[i], arr[i])
+      }
+    }
+    return resultArray;
+  }
+
+  // console.log(beRemovedTiles)
   return (
     <div className="App"
       onKeyDown={handleKeyDown}
@@ -265,6 +262,11 @@ function App() {
             )}
           </GridContainer>
           <TileContainer>
+            {beRemovedTiles.map((tile, index) =>
+              <Tile key={`combined-${index}`} tile={tile} beRemoved={true}>
+                {tile.number}
+              </Tile>
+            )}
             {numbers.map((tile, index) => {
               if (tile)
                 return <Tile key={`tile-${index}`} tile={tile}>
@@ -358,8 +360,7 @@ const Tile = styled(Cell)`
   text-align: center;
   font-size: 2em;
   font-weight: bold;
-  /* transition: all .2s .2s; */
-  ${({ tile }) => {
+  ${({ tile, beRemoved }) => {
     if (tile) {
       const { number, row, col, prevCol, prevRow, prevNumber, isNew, isCombined } = tile;
       const position = {
@@ -373,29 +374,29 @@ const Tile = styled(Cell)`
         color: ${colors[number].color};
         box-shadow: ${colors[number].boxShadow || 'none'};
         transform: ${`translate(${position.prevX},${position.prevY})`};
-        opacity: ${(isNew || isCombined) ? 0 : 1};
-        animation-duration : ${isCombined ? '.4s' : '.6s'};
-        animation-delay: ${isNew ? '.6s' : 'none'};
+        opacity: ${isNew ? 0 : 1};
+        animation-duration : ${isCombined ? '.4s' : '.4s'};
+        animation-delay: ${isNew ? '.4s' : 'none'};
         animation-timing-function: ease;
         animation-fill-mode: forwards;
-        animation-name: ${isNew ? scaleUp(position) : slideTile(position)};
+        animation-name: ${isNew ? scaleUp(position) : isCombined ? pop(position) : beRemoved ? slideOutTile(position) : slideTile(position)};
         z-index: ${(isNew || isCombined) ? 1 : 0};
       `
     }
   }}
-
-  &.moved{
-
-  }
-
-  &.new{
-
-  }
-
-  &.combined{
-
-  }
 `;
+
+const pop = ({ x, y }) => keyframes`
+   from{
+      transform: ${`translate(${x},${y})`} scale(0);
+    }
+    80%{
+      transform: ${`translate(${x},${y})`} scale(1.2);
+    }
+    to{
+      transform: ${`translate(${x},${y})`} scale(1);
+    }
+`
 
 const slideTile = ({ prevX, x, prevY, y }) => keyframes`
   from {
@@ -403,6 +404,16 @@ const slideTile = ({ prevX, x, prevY, y }) => keyframes`
   }
   to{
     transform : ${`translate(${x},${y})`};
+  }
+`
+
+const slideOutTile = ({ prevX, x, prevY, y }) => keyframes`
+  from {
+    transform: ${`translate(${prevX},${prevY})`};
+  }
+  to{
+    transform : ${`translate(${x},${y})`};
+    display: none;
   }
 `
 
