@@ -141,8 +141,10 @@ function App() {
 
   useEffect(() => {
     const newTile = getNewTile(numbers, true);
-    if (newTile) {
+    const newTile2 = getNewTile(numbers, newTile.index);
+    if (newTile && newTile2) {
       numbers[newTile.index] = newTile;
+      numbers[newTile2.index] = newTile2;
       setNumbers([...numbers]);
     }
   }, [])
@@ -209,15 +211,15 @@ function App() {
     }
   }
 
-  function getNewTile(arr, isInit) {
+  function getNewTile(arr, isInit = null) {
     let emptyPosition = [];
     arr.map((number, index) => {
-      if (!number)
+      if (!number && (isInit !== index))
         emptyPosition.push(index);
     })
     if (emptyPosition) {
       const index = emptyPosition[getRandomNumber(0, emptyPosition.length - 1)];
-      const number = numberList[isInit ? 0 : getRandomNumber(0, 1)];
+      const number = numberList[isInit !== null ? 0 : getRandomNumber(0, 1)];
       const { row, col } = getRowAndCol(index);
       return {
         index, number, prevNumber: number, row, col, prevRow: row, prevCol: col, isNew: true,
