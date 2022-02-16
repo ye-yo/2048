@@ -150,6 +150,8 @@ export const Container = styled.section`
     border-radius: 10px;
     background-color: #8796ce;
     padding: ${defaultMargin};
+    position: relative;
+    overflow: hidden;
 `;
 
 export const GridContainer = styled.div`
@@ -175,20 +177,20 @@ flex-direction: row;
 }
 `;
 
-export const Cell = styled.div.attrs(({ row, col, gridSize }) => ({
+const Cell = styled.div.attrs(({ row, col, gridSize }) => ({
     style: {
         width: defaultSize,
         height: defaultSize,
         lineHeight: `calc(${defaultSize} + 0.4rem)`,
         marginBottom: row < gridSize - 1 ? defaultMargin : 0,
-        marginRight: col < gridSize - 1 ? defaultMargin : 0
+        marginRight: col < gridSize - 1 ? defaultMargin : 0,
     }
 }))`
     border-radius: 3px;
-
 `;
+
 export const GridCell = styled(Cell)`
-background-color: #d9e1ff;
+    background-color: #d9e1ff;
 `;
 
 export const TileContainer = styled.div`
@@ -211,18 +213,20 @@ ${({ tile, beRemoved }) => {
                 prevY: `calc(${prevRow} * ${defaultSize} + ${defaultMargin} * ${prevRow})`
             }
             return css`
-      background: ${colors[number].background};
-      color: ${colors[number].color};
-      box-shadow: ${colors[number].boxShadow || 'none'};
-      transform: ${`translate(${position.prevX},${position.prevY})`};
-      opacity: ${isNew ? 0 : 1};
-      animation-duration : ${isCombined ? '.4s' : '.4s'};
-      animation-delay: ${isNew ? '.4s' : 'none'};
-      animation-timing-function: ease;
-      animation-fill-mode: forwards;
-      animation-name: ${isNew ? scaleUp(position) : isCombined ? pop(position) : beRemoved ? slideOutTile(position) : slideTile(position)};
-      z-index: ${(isNew || isCombined) ? 1 : 0};
-    `
+                background: ${colors[number].background};
+                color: ${colors[number].color};
+                box-shadow: ${colors[number].boxShadow || 'none'};
+                transform: ${`translate(${position.prevX},${position.prevY})`};
+                opacity: ${isNew ? 0 : 1};
+                animation-duration : ${isCombined ? '.4s' : '.4s'};
+                animation-delay: ${isNew ? '.4s' : 'none'};
+                animation-timing-function: ease;
+                animation-fill-mode: forwards;
+                animation-name: ${isNew ? scaleUp(position)
+                    : isCombined ? pop(position)
+                        : beRemoved ? slideOutTile(position) : slideTile(position)};
+                z-index: ${(isNew || isCombined) ? 1 : 0};
+            `
         }
     }}
 `;
@@ -237,9 +241,56 @@ export const BackGraphic = styled.div`
     left: 0; */
 `;
 
-export const GameModal = styled.div`
 
+const Modal = styled.div`
+    position: absolute;
+    width:100%;
+    height: 100%;
+    top:0;
+    left: 0;
+    background: rgba(255,255,255,.6);
+    z-index: 100;
+    display:flex;
+    flex-direction:column;
+    justify-content: center;
+    align-items:center;
+    opacity:0;
+    transition: opacity .4s .6s ease-in;
+    &{
+        opacity: 1;
+    }
 `
+
+const Message = styled.div`
+    font-size: 4rem;
+    font-weight: 900;
+    color: #30335d;
+`;
+
+const ButtonWrap = styled.div`
+    button{
+        color: white;
+        border-radius: 4px;
+        padding: 1rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-top: 2rem;
+        &.btn-continue{ background-color: #ffcf62;}
+        &.btn-lose{background-color:#8b85bb;};
+        &.btn-new-game{background-color: #e9406d};
+        :hover{
+            opacity: .8;
+        }
+    }
+
+`;
+
+export const GameModal = ({ gameModal, handleGameButtonClick }) => (
+    <Modal>
+        <Message>{gameModal.message}</Message>
+        <ButtonWrap onClick={handleGameButtonClick}>{gameModal.button}</ButtonWrap>
+    </Modal>
+)
 
 const pop = ({ x, y }) => keyframes`
  from{

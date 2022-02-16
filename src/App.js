@@ -56,6 +56,7 @@ function App() {
   const [score, setscore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [prevPosition, setPrevPosition] = useState({});
+  const [gameModal, setGameModal] = useState(null);
 
   useEffect(() => {
     setInitTile()
@@ -70,11 +71,34 @@ function App() {
       localStorage.setItem(storedBestScoreKey, score);
     }
   }, [score])
+
+  useEffect(() => {
+    let maxNumber = 0,
+      emptyTile = false,
+      isCombinable = false;
+    numbers.map((tile, i) => {
+      if (!tile) emptyTile = true;
+      else {
+        if (i % gridSize !== gridSize - 1 && numbers[i + 1] && (numbers[i + 1].number === tile.number)) isCombinable = true;
+        if (numbers[i + gridSize] && (numbers[i + gridSize].number === tile.number)) isCombinable = true;
+      }
+      maxNumber = Math.max(tile.number || 0, maxNumber);
+    });
+    if (!isCombinable && !emptyTile) {
+      setGameState(0);
+    }
+    else if (emptyTile) {
+      if (maxNumber === 2048 || maxNumber === 8192) {
+        setGameState(maxNumber);
+      }
+    }
+  }, [numbers])
   function setInitTile() {
     setBeRemovedTiles([]);
     setscore(0);
-    const newTile = getNewTile(numbers, true);
-    const newTile2 = getNewTile(numbers, newTile.index);
+    setGameState(1);
+    const newTile = getNewTile(defaultArray, true);
+    const newTile2 = getNewTile(defaultArray, newTile.index);
     if (newTile && newTile2) {
       const newNumbers = [...defaultArray];
       newNumbers[newTile.index] = newTile;
@@ -82,7 +106,6 @@ function App() {
       setNumbers(newNumbers);
     }
   }
-  // console.log(numbers)
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -90,13 +113,6 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
     }
   }, [handleKeyDown])
-
-  function handleMove() {
-    const index = getRandomNumber(0, 3);
-    let currentNumbers = [...numbers];
-    currentNumbers[0][index] = numberList[index];
-    setNumbers(currentNumbers);
-  }
 
   function handleTouchStart(e) {
     const newPosition = getPosition(e);
@@ -254,6 +270,26 @@ function App() {
   }
   // console.log(beRemovedTiles);
 
+  function setGameState(gameState) {
+    if (gameState !== 1) {
+      let message = 'You Win!';
+      let button = <button className="btn-continue" onClick={() => setGameModal(null)}>Continue</button>;
+      switch (gameState) {
+        case 0:
+          message = 'Game Over!';
+          button = <button className="btn-lose" onClick={setInitTile}>Try again</button>;
+          break;
+        case 8192:
+          message = 'You Win!';
+          button = <button className="btn-new-game" onClick={setInitTile}>New Game</button>;
+          break;
+        default: break;
+      }
+      setGameModal({ message, button });
+    }
+    else setGameModal(null);
+  }
+
   return (
     <div className="App"
       onKeyDown={handleKeyDown}
@@ -266,6 +302,7 @@ function App() {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleToucheEnd}
         >
+          {gameModal && <GameModal gameModal={gameModal} />}
           <GridContainer gridSize={gridSize}>
             {numbers.map((row, index) =>
               <GridCell key={`cell-${index}`} row={parseInt(index / gridSize)} col={index % gridSize} gridSize={gridSize}>
