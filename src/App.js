@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
-import styled, { css, withTheme } from "styled-components";
+import styled, { css, keyframes, withTheme } from "styled-components";
 import './App.css';
 const gridSize = 4;
 const numberList = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
-const defaultArray = [0, 0, 0, 2, 2, 2, 4, 2, 0, 0, 0, 0, 2, 0, 0, 2];
+let count = 0;
+const defaultArray = Array(gridSize * gridSize).fill(0);
 const colors = {
-  2: { background: '#EBF5EE', color: '#669ca2' },
-  4: { background: '#b2cbd5', color: 'white' },
-  8: { background: '#526fba', color: 'white' },
-  16: { background: '#78a1bb', color: 'white' },
-  32: { background: '#bfa89e', color: 'white' },
-  64: { background: '#8b786d', color: 'white' },
-  128: { background: '#283044', color: 'white' },
-  256: { background: '#51669a', color: 'white' },
-  512: { background: '#d03862', color: 'white' },
-  1024: { background: '#d03862', color: 'white' },
-  2048: { background: '#d03862', color: 'white' },
-  4096: { background: '#d03862', color: 'white' },
-  8192: { background: '#d03862', color: 'white' },
+  2: { background: '#F4EEFF', color: '#9186c6' },
+  4: { background: '#ccc3f4', color: '#4a3e80' },
+  8: { background: '#A6B1E1', color: 'white' },
+  16: { background: '#424874', color: 'white' },
+  32: { background: '#ffffff', color: '#7596c0' },
+  64: { background: '#141E61', color: 'white' },
+  128: { background: '#221e39', color: 'white' },
+  256: { background: '#5472de', color: 'white' },
+  512: { background: '#2e469e', color: 'white' },
+  1024: { background: '#e9406d', color: 'white', boxShadow: '0 0 30px 4px rgb(243 116 163 / 48%), inset 0 0 0 1px rgb(255 255 255 / 29%)' },
+  2048: { background: '#ffcf62', color: 'white', boxShadow: '0 0 30px 6px rgb(243 215 116 / 48%), inset 0 0 0 1px rgb(255 255 255 / 29%)' },
+  4096: { background: '#7de6dc', color: 'white', boxShadow: '0 0 30px 6px rgb(125 230 220 / 48%), inset 0 0 0 1px rgb(255 255 255 / 29%)' },
+  8192: { background: 'linear-gradient(45deg, rgb(252, 70, 107), rgb(63, 94, 251))', color: 'white', boxShadow: '0 0 30px 10px rgb(255 255 255 / 48%), inset 0 0 0 1px rgb(255 255 255 / 29%)' },
 };
 
 function getRandomNumber(min, max) {
@@ -29,54 +30,100 @@ function getPosition(event) {
     (event._reactName == "onTouchMove" || event._reactName == "onTouchEnd") ? { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY } : { x: event.clientX, y: event.clientY };
 }
 
+const getRow = (i) => parseInt(i / gridSize);
+const getCol = (i) => i % gridSize;
 function slide(direction, grid) {
   let newArr = [];
   const isUpDown = Math.abs(direction) > 1;
   const max = isUpDown ? gridSize : gridSize * gridSize;
   const addValue = isUpDown ? 1 : gridSize;
   for (let i = 0; i < max; i = i + addValue) {
-    let arr = grid.filter((value, index) => {
-      return value && (isUpDown ?
+    let arr = grid.filter((tile, index) => {
+      return tile.number && (isUpDown ?
         (index % gridSize === i % gridSize) :
         parseInt(index / gridSize) === parseInt(i / gridSize))
     });
     let missing = gridSize - arr.length;
     let zeros = Array(missing).fill(0);
     arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr);
-    arr = combineCell(arr, direction > 0 ? 1 : -1);
+    const rootIndex = isUpDown ? getCol(i) : getRow(i);
+    arr = combineCell(rootIndex, arr, direction);
     newArr = newArr.concat(arr);
   }
-  if (Math.abs(direction) > 1) {
+  if (isUpDown) {
     const originArr = [...newArr];
-    originArr.map((number, index) => {
-      newArr[(index % gridSize) * gridSize + (parseInt(index / gridSize))] = number;
+    // console.log(originArr)
+    originArr.map((tile, index) => {
+      if (tile) {
+        const newIndex = (index % gridSize) * gridSize + (parseInt(index / gridSize));
+        if (newIndex !== index) {
+          const { row, col } = getRowAndCol(newIndex);
+          if (!newArr[index].switched) {
+            newArr[index] = 0;
+          }
+          tile.row = row;
+          tile.col = col;
+          tile.switched = true;
+          newArr[newIndex] = tile;
+        }
+      }
     })
+    // console.log(newArr)
   }
   return newArr;
 }
 
-function combineCell(arr, direction) {
-  console.log(arr)
-  const start = direction > 0 ? 0 : gridSize - 1;
-  const end = direction > 0 ? gridSize - 1 : 0;
-  for (var i = start; i != end; i = i + direction) {
-    if (arr[i + direction]) {
-      if (arr[i] === arr[i + direction] && arr[i]) {
-        arr[i] = arr[i] * 2;
-        arr[i + direction] = 0;
+function combineCell(rootIndex, arr, direction) {
+  const directionValue = direction > 0 ? 1 : -1;
+  const start = directionValue > 0 ? 0 : gridSize - 1;
+  const end = directionValue > 0 ? gridSize : -1;
+  for (var i = start; i !== end; i = i + directionValue) {
+    const position = { row: rootIndex, col: i };
+    if (i + directionValue !== end) {
+      if (arr[i + directionValue]) {
+        if (arr[i].number === arr[i + directionValue].number && arr[i].number) {
+          const changedTile = {
+            number: arr[i].number * 2,
+            row: arr[i].row,
+            col: arr[i].col,
+            isCombined: true
+          }
+          arr[i] = getTileObject(position, arr[i], changedTile);
+          arr.splice(i + directionValue, 1, 0);
+          continue;
+        }
+        else if (!arr[i]) {
+          arr[i] = getTileObject(position, arr[i + directionValue], arr[i + directionValue]);
+          arr.splice(i + directionValue, 1, 0);
+          continue;
+        }
       }
-      else if (!arr[i]) {
-        arr[i] = arr[i + direction];
-        arr[i + direction] = 0;
-      }
+    }
+    if (arr[i]) {
+      arr[i] = getTileObject(position, arr[i], arr[i])
     }
   }
   return arr;
 }
 
+function getTileObject({ row, col }, prev, current) {
+  return {
+    prevRow: prev.row,
+    prevCol: prev.col,
+    prevNumber: prev.number,
+    row,
+    col,
+    number: current.number,
+  }
+}
+
 function equal(a, b) {
   return a.length === b.length &&
     a.every((v, i) => v === b[i]);
+}
+
+function getRowAndCol(index) {
+  return { row: parseInt(index / gridSize), col: index % gridSize };
 }
 
 function App() {
@@ -85,6 +132,14 @@ function App() {
   const [score, setscore] = useState(0);
   const [maxNumber, setMaxNumber] = useState(2);
   const [prevPosition, setPrevPosition] = useState({});
+
+  useEffect(() => {
+    const newTile = getNewTile(numbers, true);
+    if (newTile) {
+      numbers[newTile.index] = newTile;
+      setNumbers([...numbers]);
+    }
+  }, [])
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -138,31 +193,28 @@ function App() {
   function slideNumbers(direction) {
     if (direction) {
       let newArray = slide(direction, [...numbers]);
-      console.log(newArray)
-
-      //바뀐게 있을 때만 new Tile
       if (!equal(numbers, newArray)) {
         const newTile = getNewTile(newArray);
-        console.log(newArray, newTile)
         if (newTile) {
-          newArray[newTile.index] = newTile.number;
+          newArray[newTile.index] = newTile;
           setNumbers([...newArray]);
         }
       }
     }
   }
 
-  function getNewTile(arr) {
+  function getNewTile(arr, isInit) {
     let emptyPosition = [];
     arr.map((number, index) => {
-      // console.log(index, number);
       if (!number)
         emptyPosition.push(index);
     })
-    // console.log(emptyPosition)
     if (emptyPosition) {
+      const index = emptyPosition[getRandomNumber(0, emptyPosition.length - 1)];
+      const number = numberList[isInit ? 0 : getRandomNumber(0, 1)];
+      const { row, col } = getRowAndCol(index);
       return {
-        index: emptyPosition[getRandomNumber(0, emptyPosition.length - 1)], number: numberList[getRandomNumber(0, 1)]
+        index, number, prevNumber: number, row, col, prevRow: row, prevCol: col, isNew: true,
       }
     }
     else {
@@ -181,6 +233,7 @@ function App() {
     }
     slideNumbers(direction);
   }
+  console.log(numbers);
 
   return (
     <div className="App"
@@ -201,10 +254,12 @@ function App() {
             )}
           </GridContainer>
           <TileContainer>
-            {numbers.map((number, index) => {
-              if (number)
-                return <Tile key={`tile-${index}`} number={number} row={parseInt(index / gridSize)} col={index % gridSize}>
-                  {number}
+            {numbers.map((tile, index) => {
+              if (tile)
+                return <Tile key={`tile-${index}`} tile={tile}>
+                  {tile.number}
+                  {tile.isNew && 'new'}
+                  {tile.isCombined && 'combined'}
                 </Tile>
             })}
           </TileContainer>
@@ -249,12 +304,8 @@ const GridContainer = styled.div`
   display:flex;
   flex-direction: row;
   flex-wrap:wrap;
-  ${({ row, col }) => {
-    return css`
-      width: ${`calc(${defaultSize} * ${gridSize} + ${defaultMargin} * ${gridSize - 1})`};
-      height: ${`calc(${defaultSize} * ${gridSize} + ${defaultMargin} * ${gridSize - 1})`};
-    `;
-  }}
+  width: ${`calc(${defaultSize} * ${gridSize} + ${defaultMargin} * ${gridSize - 1})`};
+  height: ${`calc(${defaultSize} * ${gridSize} + ${defaultMargin} * ${gridSize - 1})`};
 `;
 const GridRow = styled.div`
   width: 100%;
@@ -296,17 +347,60 @@ const Tile = styled(Cell)`
   text-align: center;
   font-size: 2em;
   font-weight: bold;
-  transform: 0;
   /* transition: all .2s .2s; */
-  transition: transform 1s ease, top 1s ease;
-  ${({ number, row, col }) => {
-    return css`
-      background-color: ${colors[number].background};
-      color: ${colors[number].color};
-      /* transform: ${`translate(calc(${col} * ${defaultSize} + ${defaultMargin} * ${col}),calc(${row} * ${defaultSize} + ${defaultMargin} * ${row}))`}; */
-      transform: ${`translate(calc(${col} * ${defaultSize} + ${defaultMargin} * ${col}),calc(${row} * ${defaultSize} + ${defaultMargin} * ${row}))`};
-    `
+  ${({ tile }) => {
+    if (tile) {
+      const { number, row, col, prevCol, prevRow, prevNumber, isNew, isCombined } = tile;
+      const position = {
+        x: `calc(${col} * ${defaultSize} + ${defaultMargin} * ${col})`,
+        y: `calc(${row} * ${defaultSize} + ${defaultMargin} * ${row})`,
+        prevX: `calc(${prevCol} * ${defaultSize} + ${defaultMargin} * ${prevCol})`,
+        prevY: `calc(${prevRow} * ${defaultSize} + ${defaultMargin} * ${prevRow})`
+      }
+      return css`
+        background: ${colors[number].background};
+        color: ${colors[number].color};
+        box-shadow: ${colors[number].boxShadow || 'none'};
+        transform: ${`translate(${position.prevX},${position.prevY})`};
+        opacity: ${(isNew || isCombined) ? 0 : 1};
+        animation-duration : ${isCombined ? '.4s' : '.6s'};
+        animation-delay: ${isNew ? '.6s' : 'none'};
+        animation-timing-function: ease;
+        animation-fill-mode: forwards;
+        animation-name: ${isNew ? scaleUp(position) : slideTile(position)};
+        z-index: ${(isNew || isCombined) ? 1 : 0};
+      `
+    }
   }}
+
+  &.moved{
+
+  }
+
+  &.new{
+
+  }
+
+  &.combined{
+
+  }
 `;
 
+const slideTile = ({ prevX, x, prevY, y }) => keyframes`
+  from {
+    transform: ${`translate(${prevX},${prevY})`};
+  }
+  to{
+    transform : ${`translate(${x},${y})`};
+  }
+`
+
+const scaleUp = ({ x, y }) => keyframes`
+  from {
+    transform: ${`translate(${x},${y})`} scale(0);
+  }
+  to{
+    opacity: 1;
+  }
+`
 export default App;
