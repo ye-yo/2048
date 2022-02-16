@@ -177,6 +177,7 @@ function App() {
     }
     slideNumbers(direction);
   }
+
   // console.log(numbers);
   function slide(direction, grid) {
     let newArr = Array(gridSize * gridSize).fill(0);

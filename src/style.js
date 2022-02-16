@@ -117,6 +117,7 @@ export const Button = styled.button`
     }
 `;
 
+
 export const Header = ({ children, score, bestScore }) => (
     <HeaderWrap>
         <Heading>
@@ -174,17 +175,17 @@ flex-direction: row;
 }
 `;
 
-export const Cell = styled.div`
-width : ${defaultSize};
-height: ${defaultSize};
-line-height: ${`calc(${defaultSize} + 0.4rem)`};
-border-radius: 3px;
-${({ row, col, gridSize }) => {
-        return css`
-    margin-bottom: ${row < gridSize - 1 ? defaultMargin : 0};
-    margin-right: ${col < gridSize - 1 ? defaultMargin : 0};
-  `;
-    }}
+export const Cell = styled.div.attrs(({ row, col, gridSize }) => ({
+    style: {
+        width: defaultSize,
+        height: defaultSize,
+        lineHeight: `calc(${defaultSize} + 0.4rem)`,
+        marginBottom: row < gridSize - 1 ? defaultMargin : 0,
+        marginRight: col < gridSize - 1 ? defaultMargin : 0
+    }
+}))`
+    border-radius: 3px;
+
 `;
 export const GridCell = styled(Cell)`
 background-color: #d9e1ff;
