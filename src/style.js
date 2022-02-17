@@ -166,15 +166,15 @@ export const GridContainer = styled.div`
     }}
 `;
 export const GridRow = styled.div`
-width: 100%;
-flex: 1;
-border-radius: 6px;
-margin-bottom: ${defaultMargin};
-display: flex;
-flex-direction: row;
-&:last-child{
-  margin-bottom: 0;
-}
+    width: 100%;
+    flex: 1;
+    border-radius: 6px;
+    margin-bottom: ${defaultMargin};
+    display: flex;
+    flex-direction: row;
+    &:last-child{
+    margin-bottom: 0;
+    }
 `;
 
 const Cell = styled.div(({ row, col, gridSize }) => ({

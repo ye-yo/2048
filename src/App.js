@@ -1,26 +1,21 @@
-import { useEffect, useState } from "react";
-import styled from "styled-components";
+import { useCallback, useEffect, useState } from "react";
 import './App.css';
-import { Header, Button, Main, Container, GridContainer, GridCell, TileContainer, Tile, BackGraphic, GameModal } from "./style.js";
+import { Header, Button, Main, Container, GridContainer, GridCell, TileContainer, Tile, GameModal } from "./style.js";
 const gridSize = 4;
 const numberList = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
-let count = 0;
 const defaultArray = Array(gridSize * gridSize).fill(0);
-
 
 function getRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
 function getPosition(event) {
-  return event._reactName == "onTouchStart" ? { x: event.touches[0].clientX, y: event.touches[0].clientY } :
-    (event._reactName == "onTouchMove" || event._reactName == "onTouchEnd") ? { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY } : { x: event.clientX, y: event.clientY };
+  return event._reactName === "onTouchStart" ? { x: event.touches[0].clientX, y: event.touches[0].clientY } :
+    (event._reactName === "onTouchMove" || event._reactName === "onTouchEnd") ? { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY } : { x: event.clientX, y: event.clientY };
 }
 
 const getRow = (i) => parseInt(i / gridSize);
 const getCol = (i) => i % gridSize;
-
-
 
 function getTileObject({ row, col }, prev, current) {
   return {
@@ -35,10 +30,9 @@ function getTileObject({ row, col }, prev, current) {
 
 function isChanged(arr) {
   let changed = false;
-  arr.map((tile) => {
+  arr.forEach((tile) => {
     if (tile.prevRow !== tile.row || tile.prevCol !== tile.col || tile.prevNumber !== tile.number) {
       changed = true;
-      return false;
     }
   })
   return changed;
@@ -53,17 +47,32 @@ function App() {
 
   const [numbers, setNumbers] = useState(defaultArray);
   const [beRemovedTiles, setBeRemovedTiles] = useState([]);
-  const [score, setscore] = useState(0);
+  const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [prevPosition, setPrevPosition] = useState({});
   const [gameModal, setGameModal] = useState(null);
+
+
+  const setInitTile = useCallback(() => {
+    setBeRemovedTiles([]);
+    setScore(0);
+    setGameState(1);
+    const newTile = getNewTile(defaultArray, true);
+    const newTile2 = getNewTile(defaultArray, newTile.index);
+    if (newTile && newTile2) {
+      const newNumbers = [...defaultArray];
+      newNumbers[newTile.index] = newTile;
+      newNumbers[newTile2.index] = newTile2;
+      setNumbers(newNumbers);
+    }
+  }, []);
 
   useEffect(() => {
     setInitTile()
     const storedBestScore = localStorage.getItem(storedBestScoreKey);
     if (storedBestScore)
       setBestScore(storedBestScore);
-  }, [])
+  }, [setInitTile])
 
   useEffect(() => {
     if (bestScore < score) {
@@ -72,11 +81,33 @@ function App() {
     }
   }, [score])
 
+
+
+  const setGameState = useCallback((gameState) => {
+    if (gameState !== 1) {
+      let message = 'You Win!';
+      let button = <button className="btn-continue" onClick={() => setGameModal(null)}>Continue</button>;
+      switch (gameState) {
+        case 0:
+          message = 'Game Over!';
+          button = <button className="btn-lose" onClick={setInitTile}>Try again</button>;
+          break;
+        case 8192:
+          message = 'You Win!';
+          button = <button className="btn-new-game" onClick={setInitTile}>New Game</button>;
+          break;
+        default: break;
+      }
+      setGameModal({ message, button });
+    }
+    else setGameModal(null);
+  }, [setInitTile]);
+
   useEffect(() => {
     let maxNumber = 0,
       emptyTile = false,
       isCombinable = false;
-    numbers.map((tile, i) => {
+    numbers.forEach((tile, i) => {
       if (!tile) emptyTile = true;
       else {
         if (i % gridSize !== gridSize - 1 && numbers[i + 1] && (numbers[i + 1].number === tile.number)) isCombinable = true;
@@ -92,27 +123,37 @@ function App() {
         setGameState(maxNumber);
       }
     }
-  }, [numbers])
-  function setInitTile() {
-    setBeRemovedTiles([]);
-    setscore(0);
-    setGameState(1);
-    const newTile = getNewTile(defaultArray, true);
-    const newTile2 = getNewTile(defaultArray, newTile.index);
-    if (newTile && newTile2) {
-      const newNumbers = [...defaultArray];
-      newNumbers[newTile.index] = newTile;
-      newNumbers[newTile2.index] = newTile2;
-      setNumbers(newNumbers);
+  }, [numbers, setGameState])
+
+  const slideNumbers = useCallback(direction => {
+    if (direction) {
+      let { newArray, combinedArray } = slide(direction, [...numbers]);
+      if (isChanged(newArray)) {
+        const newTile = getNewTile(newArray);
+        if (newTile) {
+          newArray[newTile.index] = newTile;
+          setNumbers([...newArray]);
+          setBeRemovedTiles([...combinedArray]);
+        }
+      }
     }
-  }
+  }, [numbers, slide]);
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+    function handleKeyDown(e) {
+      let direction = null;
+      switch (e.keyCode) {
+        case 37: direction = 1; break;
+        case 38: direction = 4; break;
+        case 39: direction = -1; break;
+        case 40: direction = -4; break;
+        default: break;
+      }
+      slideNumbers(direction);
     }
-  }, [handleKeyDown])
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [slideNumbers]);
 
   function handleTouchStart(e) {
     const newPosition = getPosition(e);
@@ -149,25 +190,12 @@ function App() {
     slideNumbers(direction);
   }
 
-  function slideNumbers(direction) {
-    if (direction) {
-      let { newArray, combinedArray } = slide(direction, [...numbers]);
-      if (isChanged(newArray)) {
-        const newTile = getNewTile(newArray);
-        if (newTile) {
-          newArray[newTile.index] = newTile;
-          setNumbers([...newArray]);
-          setBeRemovedTiles([...combinedArray]);
-        }
-      }
-    }
-  }
-
   function getNewTile(arr, isInit = null) {
     let emptyPosition = [];
-    arr.map((number, index) => {
-      if (!number && (isInit !== index))
+    arr.forEach((number, index) => {
+      if (!number && (isInit !== index)) {
         emptyPosition.push(index);
+      }
     })
     if (emptyPosition) {
       const index = emptyPosition[getRandomNumber(0, emptyPosition.length - 1)];
@@ -180,18 +208,6 @@ function App() {
     else {
       return false;
     }
-  }
-
-  function handleKeyDown(e) {
-    let direction = null;
-    switch (e.keyCode) {
-      case 37: direction = 1; break;
-      case 38: direction = 4; break;
-      case 39: direction = -1; break;
-      case 40: direction = -4; break;
-      default: break;
-    }
-    slideNumbers(direction);
   }
 
   // console.log(numbers);
@@ -249,7 +265,7 @@ function App() {
               number
             }
             combinedRowArray.push(arr[i + directionValue]);
-            setscore(score => score + addedValue)
+            setScore(score => score + addedValue)
             arr.splice(i + directionValue, 1)
             direction > 0 ? arr.push(0) : arr.unshift(0);
             continue;
@@ -270,30 +286,8 @@ function App() {
   }
   // console.log(beRemovedTiles);
 
-  function setGameState(gameState) {
-    if (gameState !== 1) {
-      let message = 'You Win!';
-      let button = <button className="btn-continue" onClick={() => setGameModal(null)}>Continue</button>;
-      switch (gameState) {
-        case 0:
-          message = 'Game Over!';
-          button = <button className="btn-lose" onClick={setInitTile}>Try again</button>;
-          break;
-        case 8192:
-          message = 'You Win!';
-          button = <button className="btn-new-game" onClick={setInitTile}>New Game</button>;
-          break;
-        default: break;
-      }
-      setGameModal({ message, button });
-    }
-    else setGameModal(null);
-  }
-
   return (
-    <div className="App"
-      onKeyDown={handleKeyDown}
-    >
+    <div className="App">
       <Header score={score} bestScore={bestScore}>
         <Button onClick={setInitTile}>New Game</Button>
       </Header>
@@ -316,10 +310,9 @@ function App() {
               </Tile>
             )}
             {numbers.map((tile, index) => {
-              if (tile)
-                return <Tile key={`tile-${index}`} tile={tile} gridSize={gridSize}>
-                  {tile.number}
-                </Tile>
+              return tile ? <Tile key={`tile-${index}`} tile={tile} gridSize={gridSize}>
+                {tile.number}
+              </Tile> : '';
             })}
           </TileContainer>
         </Container>
