@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import './App.css';
 import { Header, Button, Main, Container, GridContainer, GridCell, TileContainer, Tile, GameModal } from "./style.js";
-const gridSize = 4;
+const BOARD_SIZE = 4;
 const numberList = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
-const defaultArray = Array(gridSize * gridSize).fill(0);
+const defaultArray = Array(BOARD_SIZE * BOARD_SIZE).fill(0);
+const WIN_NUMBER = 2048;
+const MAX_NUMBER = 8192;
 
 function getRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min)
@@ -14,8 +16,8 @@ function getPosition(event) {
     (event._reactName === "onTouchMove" || event._reactName === "onTouchEnd") ? { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY } : { x: event.clientX, y: event.clientY };
 }
 
-const getRow = (i) => parseInt(i / gridSize);
-const getCol = (i) => i % gridSize;
+const getRow = (i) => parseInt(i / BOARD_SIZE);
+const getCol = (i) => i % BOARD_SIZE;
 
 function getTileObject({ row, col }, prev, current) {
   return {
@@ -28,18 +30,16 @@ function getTileObject({ row, col }, prev, current) {
   }
 }
 
+function isTileChanged({ prevRow, row, prevCol, col, prevNumber, number }) {
+  return prevRow !== row || prevCol !== col || prevNumber !== number;
+}
 function isChanged(arr) {
-  let changed = false;
-  arr.forEach((tile) => {
-    if (tile.prevRow !== tile.row || tile.prevCol !== tile.col || tile.prevNumber !== tile.number) {
-      changed = true;
-    }
-  })
+  let changed = arr.some(isTileChanged);
   return changed;
 }
 
 function getRowAndCol(index) {
-  return { row: parseInt(index / gridSize), col: index % gridSize };
+  return { row: parseInt(index / BOARD_SIZE), col: index % BOARD_SIZE };
 }
 
 const storedBestScoreKey = '2048_best';
@@ -51,7 +51,6 @@ function App() {
   const [bestScore, setBestScore] = useState(0);
   const [prevPosition, setPrevPosition] = useState({});
   const [gameModal, setGameModal] = useState(null);
-
 
   const setInitTile = useCallback(() => {
     setBeRemovedTiles([]);
@@ -81,8 +80,6 @@ function App() {
     }
   }, [score])
 
-
-
   const setGameState = useCallback((gameState) => {
     if (gameState !== 1) {
       let message = 'You Win!';
@@ -103,25 +100,36 @@ function App() {
     else setGameModal(null);
   }, [setInitTile]);
 
-  useEffect(() => {
-    let maxNumber = 0,
-      emptyTile = false,
-      isCombinable = false;
-    numbers.forEach((tile, i) => {
-      if (!tile) emptyTile = true;
-      else {
-        if (i % gridSize !== gridSize - 1 && numbers[i + 1] && (numbers[i + 1].number === tile.number)) isCombinable = true;
-        if (numbers[i + gridSize] && (numbers[i + gridSize].number === tile.number)) isCombinable = true;
-      }
-      maxNumber = Math.max(tile.number || 0, maxNumber);
+  function checkIsCombinable() {
+    return numbers.some((tile, i) => {
+      const checkRow = i % BOARD_SIZE !== BOARD_SIZE - 1 && numbers[i + 1] && (numbers[i + 1].number === tile.number);
+      const checkColumn = numbers[i + BOARD_SIZE] && (numbers[i + BOARD_SIZE].number === tile.number);
+      return checkRow || checkColumn;
     });
-    if (!isCombinable && !emptyTile) {
+  }
+
+  function checkBoardIsFull() {
+    return !numbers.some(tile => !tile);
+  }
+
+  function getMaxNumber() {
+    return Math.max.apply(Math, numbers.map(tile => tile.number || 0));
+  }
+
+  function getGameState() {
+    const isBoardFull = checkBoardIsFull();
+    const maxNumber = getMaxNumber();
+    const isCombinable = checkIsCombinable();
+    return { maxNumber, isBoardFull, isCombinable };
+  }
+
+  useEffect(() => {
+    const { maxNumber, isBoardFull, isCombinable } = getGameState();
+    if (!isCombinable && isBoardFull) {
       setGameState(0);
     }
-    else if (emptyTile) {
-      if (maxNumber === 2048 || maxNumber === 8192) {
-        setGameState(maxNumber);
-      }
+    else if (!isBoardFull && (maxNumber === WIN_NUMBER || maxNumber === MAX_NUMBER)) {
+      setGameState(maxNumber);
     }
   }, [numbers, setGameState])
 
@@ -176,10 +184,10 @@ function App() {
     }
     else if (xyDiff < 0) {
       if (yDiff + 20 < 0) { //up
-        direction = gridSize;
+        direction = BOARD_SIZE;
       }
       else if (yDiff - 20 > 0) { //down
-        direction = -gridSize;
+        direction = -BOARD_SIZE;
       }
     }
     return direction;
@@ -190,13 +198,11 @@ function App() {
     slideNumbers(direction);
   }
 
+  function getEmptyPosition(arr, isInit) {
+    return arr.reduce((accumulator, number, index) => !number && (isInit !== index) ? (accumulator.push(index), accumulator) : accumulator, []);
+  }
   function getNewTile(arr, isInit = null) {
-    let emptyPosition = [];
-    arr.forEach((number, index) => {
-      if (!number && (isInit !== index)) {
-        emptyPosition.push(index);
-      }
-    })
+    let emptyPosition = getEmptyPosition(arr, isInit);
     if (emptyPosition) {
       const index = emptyPosition[getRandomNumber(0, emptyPosition.length - 1)];
       const number = numberList[isInit !== null ? 0 : getRandomNumber(0, 1)];
@@ -209,26 +215,25 @@ function App() {
       return false;
     }
   }
-
   // console.log(numbers);
   function slide(direction, grid) {
-    let newArr = Array(gridSize * gridSize).fill(0);
+    let newArr = Array(BOARD_SIZE * BOARD_SIZE).fill(0);
     const isUpDown = Math.abs(direction) > 1;
-    const max = isUpDown ? gridSize : gridSize * gridSize;
-    const addValue = isUpDown ? 1 : gridSize;
+    const max = isUpDown ? BOARD_SIZE : BOARD_SIZE * BOARD_SIZE;
+    const addValue = isUpDown ? 1 : BOARD_SIZE;
     let combinedArray = [];
     for (let i = 0; i < max; i = i + addValue) {
       let arr = grid.filter((tile, index) => {
         return tile.number && (isUpDown ?
-          (index % gridSize === i % gridSize) :
-          parseInt(index / gridSize) === parseInt(i / gridSize))
+          (index % BOARD_SIZE === i % BOARD_SIZE) :
+          parseInt(index / BOARD_SIZE) === parseInt(i / BOARD_SIZE))
       });
-      let missing = gridSize - arr.length;
+      let missing = BOARD_SIZE - arr.length;
       let zeros = Array(missing).fill(0);
       arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr);
-      if (zeros.length < gridSize) {
+      if (zeros.length < BOARD_SIZE) {
         const rootIndex = isUpDown ? getCol(i) : getRow(i);
-        const { movedArray, combinedRowArray } = combineCell(arr, newArr, direction, rootIndex);
+        const { movedArray, combinedRowArray } = combineCell({ arr, resultArray: newArr, direction, rootIndex });
         newArr = movedArray;
         combinedArray = combinedRowArray;
       }
@@ -236,15 +241,15 @@ function App() {
     }
     return { newArray: newArr, combinedArray };
   }
-  function combineCell(arr, resultArray, direction, rootIndex) {
+  function combineCell({ arr, resultArray, direction, rootIndex }) {
     let combinedRowArray = [];
     const isUpDown = Math.abs(direction) > 1,
       directionValue = direction > 0 ? 1 : -1,
-      start = directionValue > 0 ? 0 : gridSize - 1,
-      end = directionValue > 0 ? gridSize : -1;
+      start = directionValue > 0 ? 0 : BOARD_SIZE - 1,
+      end = directionValue > 0 ? BOARD_SIZE : -1;
     for (var i = start; i !== end; i = i + directionValue) {
       const position = { row: isUpDown ? i : rootIndex, col: isUpDown ? rootIndex : i };
-      const realIndex = position.row * gridSize + position.col;
+      const realIndex = position.row * BOARD_SIZE + position.col;
       if (i + directionValue !== end) {
         if (arr[i + directionValue]) {
           if (arr[i].number === arr[i + directionValue].number && arr[i].number) {
@@ -297,23 +302,24 @@ function App() {
           onTouchEnd={handleToucheEnd}
         >
           {gameModal && <GameModal gameModal={gameModal} />}
-          <GridContainer gridSize={gridSize}>
+          <GridContainer boardSize={BOARD_SIZE}>
             {numbers.map((row, index) =>
-              <GridCell key={`cell-${index}`} row={parseInt(index / gridSize)} col={index % gridSize} gridSize={gridSize}>
+              <GridCell key={`cell-${index}`} row={parseInt(index / BOARD_SIZE)} col={index % BOARD_SIZE} boardSize={BOARD_SIZE}>
               </GridCell>
             )}
           </GridContainer>
           <TileContainer>
             {beRemovedTiles.map((tile, index) =>
-              <Tile key={`combined-${index}`} tile={tile} beRemoved={true} gridSize={gridSize}>
+              <Tile key={`combined-${index}`} tile={tile} beRemoved={true} boardSize={BOARD_SIZE}>
                 {tile.number}
               </Tile>
             )}
-            {numbers.map((tile, index) => {
-              return tile ? <Tile key={`tile-${index}`} tile={tile} gridSize={gridSize}>
-                {tile.number}
-              </Tile> : '';
-            })}
+            {numbers.map((tile, index) =>
+              tile ?
+                <Tile key={`tile-${index}`} tile={tile} boardSize={BOARD_SIZE}>
+                  {tile.number}
+                </Tile> : ''
+            )}
           </TileContainer>
         </Container>
       </Main>

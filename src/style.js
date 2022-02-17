@@ -158,10 +158,10 @@ export const GridContainer = styled.div`
     display:flex;
     flex-direction: row;
     flex-wrap:wrap;
-    ${({ gridSize }) => {
+    ${({ boardSize }) => {
         return css`
-            width: ${`calc(${defaultSize} * ${gridSize} + ${defaultMargin} * ${gridSize - 1})`};
-            height: ${`calc(${defaultSize} * ${gridSize} + ${defaultMargin} * ${gridSize - 1})`};
+            width: ${`calc(${defaultSize} * ${boardSize} + ${defaultMargin} * ${boardSize - 1})`};
+            height: ${`calc(${defaultSize} * ${boardSize} + ${defaultMargin} * ${boardSize - 1})`};
         `
     }}
 `;
@@ -177,12 +177,12 @@ export const GridRow = styled.div`
     }
 `;
 
-const Cell = styled.div(({ row, col, gridSize }) => ({
+const Cell = styled.div(({ row, col, boardSize }) => ({
     width: defaultSize,
     height: defaultSize,
     lineHeight: `calc(${defaultSize} + 0.4rem)`,
-    marginBottom: row < gridSize - 1 ? defaultMargin : 0,
-    marginRight: col < gridSize - 1 ? defaultMargin : 0,
+    marginBottom: row < boardSize - 1 ? defaultMargin : 0,
+    marginRight: col < boardSize - 1 ? defaultMargin : 0,
     borderRadius: '3px'
 }));
 
@@ -249,7 +249,7 @@ const Modal = styled.div`
     justify-content: center;
     align-items:center;
     opacity:0;
-    transition: opacity .4s .6s ease-in;
+    transition: opacity .4s .8s ease-in;
     &{
         opacity: 1;
     }
