@@ -177,17 +177,14 @@ flex-direction: row;
 }
 `;
 
-const Cell = styled.div.attrs(({ row, col, gridSize }) => ({
-    style: {
-        width: defaultSize,
-        height: defaultSize,
-        lineHeight: `calc(${defaultSize} + 0.4rem)`,
-        marginBottom: row < gridSize - 1 ? defaultMargin : 0,
-        marginRight: col < gridSize - 1 ? defaultMargin : 0,
-    }
-}))`
-    border-radius: 3px;
-`;
+const Cell = styled.div(({ row, col, gridSize }) => ({
+    width: defaultSize,
+    height: defaultSize,
+    lineHeight: `calc(${defaultSize} + 0.4rem)`,
+    marginBottom: row < gridSize - 1 ? defaultMargin : 0,
+    marginRight: col < gridSize - 1 ? defaultMargin : 0,
+    borderRadius: '3px'
+}));
 
 export const GridCell = styled(Cell)`
     background-color: #d9e1ff;
@@ -198,14 +195,21 @@ export const TileContainer = styled.div`
   z-index:1;
 `;
 
-export const Tile = styled(Cell)`
-position: absolute;
-text-align: center;
-font-size: 4.4rem;
-font-weight: bold;
-${({ tile, beRemoved }) => {
+export const Tile = styled(Cell).attrs(({ tile }) => {
+    if (tile) {
+        const { number } = tile;
+        return ({
+            style: {
+                background: colors[number].background,
+                color: colors[number].color,
+                boxShadow: colors[number].boxShadow || 'none',
+            }
+        })
+    }
+})`
+    ${({ tile, beRemoved }) => {
         if (tile) {
-            const { number, row, col, prevCol, prevRow, prevNumber, isNew, isCombined } = tile;
+            const { row, col, prevCol, prevRow, isNew, isCombined } = tile;
             const position = {
                 x: `calc(${col} * ${defaultSize} + ${defaultMargin} * ${col})`,
                 y: `calc(${row} * ${defaultSize} + ${defaultMargin} * ${row})`,
@@ -213,34 +217,24 @@ ${({ tile, beRemoved }) => {
                 prevY: `calc(${prevRow} * ${defaultSize} + ${defaultMargin} * ${prevRow})`
             }
             return css`
-                background: ${colors[number].background};
-                color: ${colors[number].color};
-                box-shadow: ${colors[number].boxShadow || 'none'};
                 transform: ${`translate(${position.prevX},${position.prevY})`};
                 opacity: ${isNew ? 0 : 1};
-                animation-duration : ${isCombined ? '.4s' : '.4s'};
-                animation-delay: ${isNew ? '.4s' : 'none'};
-                animation-timing-function: ease;
+                animation-duration: ${isCombined ? '.2s' : '.2s'};
+                animation-delay: ${isNew ? '.2s' : 'none'};
+                animation-timing-function: ease-in;
                 animation-fill-mode: forwards;
+                z-index: ${(isNew || isCombined) ? 1 : 0};
                 animation-name: ${isNew ? scaleUp(position)
                     : isCombined ? pop(position)
                         : beRemoved ? slideOutTile(position) : slideTile(position)};
-                z-index: ${(isNew || isCombined) ? 1 : 0};
             `
         }
     }}
-`;
-
-export const BackGraphic = styled.div`
-    /* background: green;
-    width: 140%;
-    height: 140%;
     position: absolute;
-    border-radius: 50%;
-    top: 80%;
-    left: 0; */
+    text-align: center;
+    font-size: 4.4rem;
+    font-weight: bold;
 `;
-
 
 const Modal = styled.div`
     position: absolute;
@@ -282,7 +276,6 @@ const ButtonWrap = styled.div`
             opacity: .8;
         }
     }
-
 `;
 
 export const GameModal = ({ gameModal, handleGameButtonClick }) => (

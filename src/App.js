@@ -324,7 +324,6 @@ function App() {
           </TileContainer>
         </Container>
       </Main>
-      <BackGraphic></BackGraphic>
     </div >
   );
 }
