@@ -213,14 +213,14 @@ export const Tile = styled(Cell).attrs(({ tile }) => {
             const position = {
                 x: `calc(${col} * ${defaultSize} + ${defaultMargin} * ${col})`,
                 y: `calc(${row} * ${defaultSize} + ${defaultMargin} * ${row})`,
-                prevX: `calc(${prevCol} * ${defaultSize} + ${defaultMargin} * ${prevCol})`,
-                prevY: `calc(${prevRow} * ${defaultSize} + ${defaultMargin} * ${prevRow})`
+                prevRow: `calc(${prevCol} * ${defaultSize} + ${defaultMargin} * ${prevCol})`,
+                prevCol: `calc(${prevRow} * ${defaultSize} + ${defaultMargin} * ${prevRow})`
             }
             return css`
-                transform: ${`translate(${position.prevX},${position.prevY})`};
+                transform: ${`translate(${position.prevRow},${position.prevCol})`};
                 opacity: ${isNew ? 0 : 1};
                 animation-duration: ${isCombined ? '.2s' : '.2s'};
-                animation-delay: ${isNew ? '.2s' : 'none'};
+                animation-delay: ${isNew ? '.21s' : 'none'};
                 animation-timing-function: ease-in;
                 animation-fill-mode: forwards;
                 z-index: ${(isNew || isCombined) ? 1 : 0};
@@ -297,18 +297,18 @@ const pop = ({ x, y }) => keyframes`
   }
 `
 
-const slideTile = ({ prevX, x, prevY, y }) => keyframes`
+const slideTile = ({ prevRow, x, prevCol, y }) => keyframes`
 from {
-  transform: ${`translate(${prevX},${prevY})`};
+  transform: ${`translate(${prevRow},${prevCol})`};
 }
 to{
   transform : ${`translate(${x},${y})`};
 }
 `
 
-const slideOutTile = ({ prevX, x, prevY, y }) => keyframes`
+const slideOutTile = ({ prevRow, x, prevCol, y }) => keyframes`
 from {
-  transform: ${`translate(${prevX},${prevY})`};
+  transform: ${`translate(${prevRow},${prevCol})`};
 }
 to{
   transform : ${`translate(${x},${y})`};

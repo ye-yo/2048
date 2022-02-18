@@ -17,7 +17,11 @@ function getPosition(event) {
 }
 
 const getRow = (i) => parseInt(i / BOARD_SIZE);
-const getCol = (i) => i % BOARD_SIZE;
+const getColumn = (i) => i % BOARD_SIZE;
+
+function getRowAndCol(index) {
+  return { row: getRow(index), col: getColumn(index) };
+}
 
 function getTileObject({ row, col }, prev, current) {
   return {
@@ -30,16 +34,50 @@ function getTileObject({ row, col }, prev, current) {
   }
 }
 
-function isTileChanged({ prevRow, row, prevCol, col, prevNumber, number }) {
+function checkTileChanged({ prevRow, row, prevCol, col, prevNumber, number }) {
   return prevRow !== row || prevCol !== col || prevNumber !== number;
 }
+
 function isChanged(arr) {
-  let changed = arr.some(isTileChanged);
+  let changed = arr.some(checkTileChanged);
   return changed;
 }
 
-function getRowAndCol(index) {
-  return { row: parseInt(index / BOARD_SIZE), col: index % BOARD_SIZE };
+function checkAllValueIsTrue(array) {
+  return !array.some(tile => !tile);
+}
+
+function getMaxNumber(numbers) {
+  return Math.max.apply(Math, numbers.map(tile => tile.number || 0));
+}
+
+function getEmptyPosition(arr, isInit) {
+  return arr.reduce((accumulator, number, index) => !number && (isInit !== index) ? (accumulator.push(index), accumulator) : accumulator, []);
+}
+
+function getDirection(e, prevPosition) {
+  const currentPosition = getPosition(e);
+  const xDiff = currentPosition.x - prevPosition.x;
+  const yDiff = currentPosition.y - prevPosition.y;
+  const xyDiff = Math.abs(xDiff) - Math.abs(yDiff);
+  let direction = null;
+  if (xyDiff > 0) {
+    if (xDiff + 20 < 0) {//left
+      direction = 1;
+    }
+    else if (xDiff - 20 > 0) { //right
+      direction = -1;
+    }
+  }
+  else if (xyDiff < 0) {
+    if (yDiff + 20 < 0) { //up
+      direction = BOARD_SIZE;
+    }
+    else if (yDiff - 20 > 0) { //down
+      direction = -BOARD_SIZE;
+    }
+  }
+  return direction;
 }
 
 const storedBestScoreKey = '2048_best';
@@ -62,7 +100,7 @@ function App() {
       const newNumbers = [...defaultArray];
       newNumbers[newTile.index] = newTile;
       newNumbers[newTile2.index] = newTile2;
-      setNumbers(newNumbers);
+      setNumbers(numbers => newNumbers);
     }
   }, []);
 
@@ -108,17 +146,9 @@ function App() {
     });
   }
 
-  function checkBoardIsFull() {
-    return !numbers.some(tile => !tile);
-  }
-
-  function getMaxNumber() {
-    return Math.max.apply(Math, numbers.map(tile => tile.number || 0));
-  }
-
   function getGameState() {
-    const isBoardFull = checkBoardIsFull();
-    const maxNumber = getMaxNumber();
+    const isBoardFull = checkAllValueIsTrue(numbers);
+    const maxNumber = getMaxNumber(numbers);
     const isCombinable = checkIsCombinable();
     return { maxNumber, isBoardFull, isCombinable };
   }
@@ -134,15 +164,13 @@ function App() {
   }, [numbers, setGameState])
 
   const slideNumbers = useCallback(direction => {
-    if (direction) {
-      let { newArray, combinedArray } = slide(direction, [...numbers]);
-      if (isChanged(newArray)) {
-        const newTile = getNewTile(newArray);
-        if (newTile) {
-          newArray[newTile.index] = newTile;
-          setNumbers([...newArray]);
-          setBeRemovedTiles([...combinedArray]);
-        }
+    let { newArray, combinedArray } = slide(direction, [...numbers]);
+    if (isChanged(newArray)) {
+      const newTile = getNewTile(newArray);
+      if (newTile) {
+        newArray[newTile.index] = newTile;
+        setNumbers([...newArray]);
+        setBeRemovedTiles([...combinedArray]);
       }
     }
   }, [numbers, slide]);
@@ -157,7 +185,8 @@ function App() {
         case 40: direction = -4; break;
         default: break;
       }
-      slideNumbers(direction);
+      if (direction)
+        slideNumbers(direction);
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -168,39 +197,12 @@ function App() {
     setPrevPosition({ ...prevPosition, ...newPosition })
   }
 
-  function getDirection(e) {
-    const currentPosition = getPosition(e);
-    const xDiff = currentPosition.x - prevPosition.x;
-    const yDiff = currentPosition.y - prevPosition.y;
-    const xyDiff = Math.abs(xDiff) - Math.abs(yDiff);
-    let direction = null;
-    if (xyDiff > 0) {
-      if (xDiff + 20 < 0) {//left
-        direction = 1;
-      }
-      else if (xDiff - 20 > 0) { //right
-        direction = -1;
-      }
-    }
-    else if (xyDiff < 0) {
-      if (yDiff + 20 < 0) { //up
-        direction = BOARD_SIZE;
-      }
-      else if (yDiff - 20 > 0) { //down
-        direction = -BOARD_SIZE;
-      }
-    }
-    return direction;
-  }
-
   function handleToucheEnd(e) {
-    const direction = getDirection(e);
-    slideNumbers(direction);
+    const direction = getDirection(e, prevPosition);
+    if (direction)
+      slideNumbers(direction);
   }
 
-  function getEmptyPosition(arr, isInit) {
-    return arr.reduce((accumulator, number, index) => !number && (isInit !== index) ? (accumulator.push(index), accumulator) : accumulator, []);
-  }
   function getNewTile(arr, isInit = null) {
     let emptyPosition = getEmptyPosition(arr, isInit);
     if (emptyPosition) {
@@ -211,85 +213,84 @@ function App() {
         index, number, prevNumber: number, row, col, prevRow: row, prevCol: col, isNew: true,
       }
     }
-    else {
-      return false;
-    }
+    else return false;
   }
   // console.log(numbers);
-  function slide(direction, grid) {
+
+  function getLine({ row, col }, isUpDown) {
+    return numbers.filter((tile, index) => tile.number && (isUpDown ? getColumn(index) === col : getRow(index) === row));
+  }
+
+  function getFirstLine(isUpDown) {
+    return numbers.filter((tile, index) => isUpDown ? index < BOARD_SIZE : index % BOARD_SIZE === 0);
+  }
+
+  function slide(direction) {
     let newArr = Array(BOARD_SIZE * BOARD_SIZE).fill(0);
     const isUpDown = Math.abs(direction) > 1;
-    const max = isUpDown ? BOARD_SIZE : BOARD_SIZE * BOARD_SIZE;
-    const addValue = isUpDown ? 1 : BOARD_SIZE;
     let combinedArray = [];
-    for (let i = 0; i < max; i = i + addValue) {
-      let arr = grid.filter((tile, index) => {
-        return tile.number && (isUpDown ?
-          (index % BOARD_SIZE === i % BOARD_SIZE) :
-          parseInt(index / BOARD_SIZE) === parseInt(i / BOARD_SIZE))
-      });
-      let missing = BOARD_SIZE - arr.length;
-      let zeros = Array(missing).fill(0);
-      arr = direction > 0 ? arr.concat(zeros) : zeros.concat(arr);
+    getFirstLine(isUpDown).forEach((tile, index) => {
+      const basePosition = isUpDown ? { row: 0, col: index } : { row: getRow(index * BOARD_SIZE), col: 0 };
+      let line = getLine(basePosition, isUpDown);
+      const missing = BOARD_SIZE - line.length;
+      const zeros = Array(missing).fill(0);
+      line = direction > 0 ? line.concat(zeros) : zeros.concat(line);
       if (zeros.length < BOARD_SIZE) {
-        const rootIndex = isUpDown ? getCol(i) : getRow(i);
-        const { movedArray, combinedRowArray } = combineCell({ arr, resultArray: newArr, direction, rootIndex });
+        const rootIndex = isUpDown ? basePosition.col : basePosition.row;
+        const { movedArray, combinedRowArray } = combineTile({ line, isUpDown, resultArray: newArr, direction, rootIndex });
         newArr = movedArray;
         combinedArray = combinedRowArray;
       }
-      // console.log(newArr)
-    }
+    })
     return { newArray: newArr, combinedArray };
   }
-  function combineCell({ arr, resultArray, direction, rootIndex }) {
+  function combineTile({ line, isUpDown, resultArray, direction, rootIndex }) {
     let combinedRowArray = [];
-    const isUpDown = Math.abs(direction) > 1,
-      directionValue = direction > 0 ? 1 : -1,
+    const directionValue = direction > 0 ? 1 : -1,
       start = directionValue > 0 ? 0 : BOARD_SIZE - 1,
       end = directionValue > 0 ? BOARD_SIZE : -1;
     for (var i = start; i !== end; i = i + directionValue) {
       const position = { row: isUpDown ? i : rootIndex, col: isUpDown ? rootIndex : i };
       const realIndex = position.row * BOARD_SIZE + position.col;
       if (i + directionValue !== end) {
-        if (arr[i + directionValue]) {
-          if (arr[i].number === arr[i + directionValue].number && arr[i].number) {
-            const addedValue = arr[i].number * 2;
+        if (line[i + directionValue]) {
+          if (line[i].number === line[i + directionValue].number && line[i].number) {
+            const addedValue = line[i].number * 2;
             const changedTile = {
               number: addedValue,
-              row: arr[i].row,
-              col: arr[i].col,
+              row: line[i].row,
+              col: line[i].col,
             }
-            resultArray[realIndex] = getTileObject(position, arr[i], changedTile);
+            resultArray[realIndex] = getTileObject(position, line[i], changedTile);
             resultArray[realIndex].isCombined = true;
-            const { row, col, number } = arr[i + directionValue];
-            arr[i + directionValue] = {
+            const { row, col, number } = line[i + directionValue];
+            line[i + directionValue] = {
               prevRow: row,
               prevCol: col,
               row: position.row,
               col: position.col,
               number
             }
-            combinedRowArray.push(arr[i + directionValue]);
+            combinedRowArray.push(line[i + directionValue]);
             setScore(score => score + addedValue)
-            arr.splice(i + directionValue, 1)
-            direction > 0 ? arr.push(0) : arr.unshift(0);
+            line.splice(i + directionValue, 1)
+            direction > 0 ? line.push(0) : line.unshift(0);
             continue;
           }
-          else if (!arr[i]) {
-            resultArray[realIndex] = getTileObject(position, arr[i + directionValue], arr[i + directionValue]);
-            arr.splice(i + directionValue, 1)
-            direction > 0 ? arr.push(0) : arr.unshift(0);
+          else if (!line[i]) {
+            resultArray[realIndex] = getTileObject(position, line[i + directionValue], line[i + directionValue]);
+            line.splice(i + directionValue, 1)
+            direction > 0 ? line.push(0) : line.unshift(0);
             continue;
           }
         }
       }
-      if (arr[i]) {
-        resultArray[realIndex] = getTileObject(position, arr[i], arr[i])
+      if (line[i]) {
+        resultArray[realIndex] = getTileObject(position, line[i], line[i])
       }
     }
     return { movedArray: resultArray, combinedRowArray };
   }
-  // console.log(beRemovedTiles);
 
   return (
     <div className="App">
