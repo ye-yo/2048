@@ -8,12 +8,23 @@ body{
   margin: 4rem auto 0;
   text-align: center;
   max-width: 44rem;
-  /* box-shadow: 0 0 10px 10px rgba(0,0,0,.4); */
   padding: 4rem 0;
   position: relative;
+  font-family: sans-serif;
 }
 @media screen and (max-width: 640px){
   html{
-    font-size: 2vmin;
+    font-size: 2.4vmin;
+  }
+}
+
+@media screen and (max-width: 480px){
+  .App{
+    position: absolute;
+    height: fit-content;
+    margin: 0 auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
 }

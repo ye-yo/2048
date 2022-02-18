@@ -7,7 +7,7 @@ export default function Header({ score, bestScore, setInitTile }) {
             <Heading>
                 <TitleWrap>
                     <span className="title">2048</span>
-                    <span className="sub-title">⭐️ Space Ver.</span>
+                    <span className="sub-title">⭐️ Night Ver.</span>
                 </TitleWrap>
                 <ScoreBoard score={score} bestScore={bestScore} />
             </Heading>

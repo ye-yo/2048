@@ -135,15 +135,15 @@ export default function GameBoard({ setScore, setBestScore }) {
 
     function handleTouchStart(e) {
         const newPosition = getPosition(e);
-        setPrevPosition({ ...prevPosition, ...newPosition })
+        setPrevPosition({ ...newPosition })
     }
 
     function handleToucheEnd(e) {
         const direction = getDirection(e, prevPosition);
-        if (direction)
+        if (direction) {
             slideTiles(direction);
+        }
     }
-
     return (
         <Container
             onTouchStart={handleTouchStart}

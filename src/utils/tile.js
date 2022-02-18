@@ -1,5 +1,5 @@
 import { BOARD_SIZE, NUMBER_LIST } from "constants";
-
+let id = 0;
 export const getRow = (i) => parseInt(i / BOARD_SIZE);
 export const getColumn = (i) => i % BOARD_SIZE;
 
@@ -9,6 +9,7 @@ export function getRowAndCol(index) {
 
 export function getTileObject({ row, col }, prev, current) {
     return {
+        id: id++,
         prevRow: prev.row,
         prevCol: prev.col,
         prevNumber: prev.number,
@@ -121,7 +122,7 @@ export function getNewTile(arr, isInit = null) {
         const number = NUMBER_LIST[isInit !== null ? 0 : getRandomNumber(0, 1)];
         const { row, col } = getRowAndCol(index);
         return {
-            index, number, prevNumber: number, row, col, prevRow: row, prevCol: col, isNew: true,
+            id: id++, index, number, prevNumber: number, row, col, prevRow: row, prevCol: col, isNew: true,
         }
     }
     else return false;

@@ -10,9 +10,9 @@ export default function TileContainer({ numbers, beRemovedTiles }) {
           {tile.number}
         </Tile>
       )}
-      {numbers.map((tile) =>
+      {numbers.map((tile, index) =>
         tile ?
-          <Tile key={`tile-${count++}`} tile={tile} boardSize={BOARD_SIZE}>
+          <Tile key={`tile-${tile.id}`} tile={tile} boardSize={BOARD_SIZE}>
             {tile.number}
           </Tile> : ''
       )}
@@ -66,7 +66,7 @@ const Tile = styled(Cell).attrs(({ tile }) => {
                 transform: ${`translate(${position.prevRow},${position.prevCol})`};
                 opacity: ${isNew ? 0 : 1};
                 animation-duration: ${isCombined ? '.2s' : '.2s'};
-                animation-delay: ${isNew ? '.4s' : 'none'};
+                animation-delay: ${isNew ? '.2s' : 'none'};
                 animation-timing-function: ease-in;
                 animation-fill-mode: forwards;
                 z-index: ${(isNew || isCombined) ? 0 : 0};
@@ -120,6 +120,7 @@ const scaleUp = ({ x, y }) => keyframes`
     transform: ${`translate(${x},${y})`} scale(0);
   }
   to{
+    transform: ${`translate(${x},${y})`} scale(1);
     opacity: 1;
   }
 `
