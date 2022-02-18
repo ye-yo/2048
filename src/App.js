@@ -18,9 +18,9 @@ function App() {
   return (
     <div className="App">
       <GlobalStyle />
-      <Header score={score} bestScore={bestScore} />
+      <Header score={score} bestScore={bestScore} setScore={setScore} />
       <Main>
-        <GameBoard setScore={setScore} setBestScore={setBestScore}></GameBoard>
+        <GameBoard score={score} setScore={setScore} setBestScore={setBestScore}></GameBoard>
       </Main>
     </div >
   );

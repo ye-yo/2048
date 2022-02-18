@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import ScoreBoard from "components/ScoreBoard";
 
-export default function Header({ score, bestScore, setInitTile }) {
+export default function Header({ score, bestScore, setScore }) {
     return (
         <HeaderWrap>
             <Heading>
@@ -13,7 +13,7 @@ export default function Header({ score, bestScore, setInitTile }) {
             </Heading>
             <SubText>
                 <p>🌙 made by yeyo</p>
-                <Button onClick={setInitTile}>New Game</Button>
+                <Button onClick={() => setScore(0)}>New Game</Button>
             </SubText>
         </HeaderWrap>
     );
