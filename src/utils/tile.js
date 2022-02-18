@@ -101,11 +101,6 @@ export function combineTile({ line, isUpDown, resultArray, direction, rootIndex 
             }
             resultArray[realIndex] = current;
         }
-        else if (next) {
-            resultArray[realIndex] = getTileObject(position, next, next);
-            line = pushToEnd(line, nextIndex, direction);
-            continue;
-        }
     }
     return { movedArray: resultArray, combinedRowArray, interimScore };
 }
