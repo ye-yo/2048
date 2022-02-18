@@ -80,16 +80,93 @@ function getDirection(e, prevPosition) {
   return direction;
 }
 
-const storedBestScoreKey = '2048_best';
-function App() {
+function compareAWithBNumber(a, b) {
+  return a.number === b.number;
+}
 
+function getLoopCondition(direction) {
+  const directionValue = direction > 0 ? 1 : -1;
+  return {
+    directionValue,
+    start: directionValue > 0 ? 0 : BOARD_SIZE - 1,
+    end: directionValue > 0 ? BOARD_SIZE : -1
+  }
+}
+
+function getRemovedTile(tile, destinationTile) {
+  const { row, col, number } = tile;
+  tile = {
+    prevRow: row,
+    prevCol: col,
+    row: destinationTile.row,
+    col: destinationTile.col,
+    number
+  }
+  return tile;
+}
+
+function pushToEnd(line, targetIndex, direction) {
+  const array = [...line];
+  array.splice(targetIndex, 1)
+  direction > 0 ? array.push(0) : array.unshift(0);
+  return array;
+}
+
+const storedBestScoreKey = '2048_best';
+
+
+function combineTile({ line, isUpDown, resultArray, direction, rootIndex }) {
+  let combinedRowArray = [];
+  let interimScore = 0;
+  const { directionValue, start, end } = getLoopCondition(direction);
+  for (var i = start; i !== end; i = i + directionValue) {
+    const position = { row: isUpDown ? i : rootIndex, col: isUpDown ? rootIndex : i };
+    const realIndex = position.row * BOARD_SIZE + position.col;
+    const nextIndex = i + directionValue;
+    let current = line[i];
+    const next = line[nextIndex];
+    if (current) {
+      current = getTileObject(position, current, current)
+      if (next) {
+        if (compareAWithBNumber(current, next)) {
+          const { combinedTile, removedTile, addedValue } = combineAToB(next, current)
+          interimScore += addedValue;
+          resultArray[realIndex] = combinedTile;
+          combinedRowArray.push(removedTile);
+          line = pushToEnd(line, nextIndex, direction);
+          continue;
+        }
+      }
+      resultArray[realIndex] = current;
+    }
+    else if (next) {
+      resultArray[realIndex] = getTileObject(position, next, next);
+      line = pushToEnd(line, nextIndex, direction);
+      continue;
+    }
+  }
+  return { movedArray: resultArray, combinedRowArray, interimScore };
+}
+
+
+function combineAToB(a, b) {
+  const addedValue = b.number * 2;
+  b.prevNumber = b.number;
+  b.number = addedValue;
+  b.isCombined = true;
+  const removedTile = getRemovedTile(a, b);
+  return { combinedTile: b, removedTile, addedValue };
+}
+
+
+
+function App() {
   const [numbers, setNumbers] = useState(defaultArray);
   const [beRemovedTiles, setBeRemovedTiles] = useState([]);
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [prevPosition, setPrevPosition] = useState({});
   const [gameModal, setGameModal] = useState(null);
-
   const setInitTile = useCallback(() => {
     setBeRemovedTiles([]);
     setScore(0);
@@ -100,7 +177,7 @@ function App() {
       const newNumbers = [...defaultArray];
       newNumbers[newTile.index] = newTile;
       newNumbers[newTile2.index] = newTile2;
-      setNumbers(numbers => newNumbers);
+      setNumbers(newNumbers);
     }
   }, []);
 
@@ -163,12 +240,13 @@ function App() {
     }
   }, [numbers, setGameState])
 
-  const slideNumbers = useCallback(direction => {
-    let { newArray, combinedArray } = slide(direction, [...numbers]);
+  const slideTiles = useCallback(direction => {
+    let { newArray, combinedArray, totalAddedScore } = slide(direction, [...numbers]);
     if (isChanged(newArray)) {
       const newTile = getNewTile(newArray);
       if (newTile) {
         newArray[newTile.index] = newTile;
+        setScore(score => score + totalAddedScore)
         setNumbers([...newArray]);
         setBeRemovedTiles([...combinedArray]);
       }
@@ -180,17 +258,17 @@ function App() {
       let direction = null;
       switch (e.keyCode) {
         case 37: direction = 1; break;
-        case 38: direction = 4; break;
+        case 38: direction = BOARD_SIZE; break;
         case 39: direction = -1; break;
-        case 40: direction = -4; break;
+        case 40: direction = -BOARD_SIZE; break;
         default: break;
       }
       if (direction)
-        slideNumbers(direction);
+        slideTiles(direction);
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [slideNumbers]);
+  }, [slideTiles]);
 
   function handleTouchStart(e) {
     const newPosition = getPosition(e);
@@ -200,7 +278,7 @@ function App() {
   function handleToucheEnd(e) {
     const direction = getDirection(e, prevPosition);
     if (direction)
-      slideNumbers(direction);
+      slideTiles(direction);
   }
 
   function getNewTile(arr, isInit = null) {
@@ -215,21 +293,17 @@ function App() {
     }
     else return false;
   }
-  // console.log(numbers);
 
   function getLine({ row, col }, isUpDown) {
     return numbers.filter((tile, index) => tile.number && (isUpDown ? getColumn(index) === col : getRow(index) === row));
   }
 
-  function getFirstLine(isUpDown) {
-    return numbers.filter((tile, index) => isUpDown ? index < BOARD_SIZE : index % BOARD_SIZE === 0);
-  }
-
   function slide(direction) {
-    let newArr = Array(BOARD_SIZE * BOARD_SIZE).fill(0);
+    let newArray = Array(BOARD_SIZE * BOARD_SIZE).fill(0);
     const isUpDown = Math.abs(direction) > 1;
     let combinedArray = [];
-    getFirstLine(isUpDown).forEach((tile, index) => {
+    let totalAddedScore = 0;
+    for (var index = 0; index < BOARD_SIZE; index++) {
       const basePosition = isUpDown ? { row: 0, col: index } : { row: getRow(index * BOARD_SIZE), col: 0 };
       let line = getLine(basePosition, isUpDown);
       const missing = BOARD_SIZE - line.length;
@@ -237,59 +311,13 @@ function App() {
       line = direction > 0 ? line.concat(zeros) : zeros.concat(line);
       if (zeros.length < BOARD_SIZE) {
         const rootIndex = isUpDown ? basePosition.col : basePosition.row;
-        const { movedArray, combinedRowArray } = combineTile({ line, isUpDown, resultArray: newArr, direction, rootIndex });
-        newArr = movedArray;
+        const { movedArray, combinedRowArray, interimScore } = combineTile({ line, isUpDown, resultArray: newArray, direction, rootIndex });
+        totalAddedScore += interimScore;
+        newArray = movedArray;
         combinedArray = combinedRowArray;
       }
-    })
-    return { newArray: newArr, combinedArray };
-  }
-  function combineTile({ line, isUpDown, resultArray, direction, rootIndex }) {
-    let combinedRowArray = [];
-    const directionValue = direction > 0 ? 1 : -1,
-      start = directionValue > 0 ? 0 : BOARD_SIZE - 1,
-      end = directionValue > 0 ? BOARD_SIZE : -1;
-    for (var i = start; i !== end; i = i + directionValue) {
-      const position = { row: isUpDown ? i : rootIndex, col: isUpDown ? rootIndex : i };
-      const realIndex = position.row * BOARD_SIZE + position.col;
-      if (i + directionValue !== end) {
-        if (line[i + directionValue]) {
-          if (line[i].number === line[i + directionValue].number && line[i].number) {
-            const addedValue = line[i].number * 2;
-            const changedTile = {
-              number: addedValue,
-              row: line[i].row,
-              col: line[i].col,
-            }
-            resultArray[realIndex] = getTileObject(position, line[i], changedTile);
-            resultArray[realIndex].isCombined = true;
-            const { row, col, number } = line[i + directionValue];
-            line[i + directionValue] = {
-              prevRow: row,
-              prevCol: col,
-              row: position.row,
-              col: position.col,
-              number
-            }
-            combinedRowArray.push(line[i + directionValue]);
-            setScore(score => score + addedValue)
-            line.splice(i + directionValue, 1)
-            direction > 0 ? line.push(0) : line.unshift(0);
-            continue;
-          }
-          else if (!line[i]) {
-            resultArray[realIndex] = getTileObject(position, line[i + directionValue], line[i + directionValue]);
-            line.splice(i + directionValue, 1)
-            direction > 0 ? line.push(0) : line.unshift(0);
-            continue;
-          }
-        }
-      }
-      if (line[i]) {
-        resultArray[realIndex] = getTileObject(position, line[i], line[i])
-      }
     }
-    return { movedArray: resultArray, combinedRowArray };
+    return { newArray, combinedArray, totalAddedScore };
   }
 
   return (
