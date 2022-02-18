@@ -1,7 +1,6 @@
 import styled, { css, keyframes } from "styled-components";
 import { BOARD_SIZE } from "constants";
 import { Cell } from "styles/Cell";
-let count = 0;
 export default function TileContainer({ numbers, beRemovedTiles }) {
   return (
     <TileWrap>
