@@ -77,7 +77,7 @@ const Tile = styled(Cell).attrs(({ tile }) => {
   }}
     position: absolute;
     text-align: center;
-    font-size: 4.4rem;
+    font-size: ${props => props.tile.number < 100 ? '4.4rem' : props.tile.number < 1000 ? '4rem' : '3.2rem'};
     font-weight: bold;
 `;
 
