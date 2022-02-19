@@ -64,7 +64,7 @@ const Tile = styled(Cell).attrs(({ tile }) => {
       return css`
                 transform: ${`translate(${position.prevRow},${position.prevCol})`};
                 opacity: ${isNew ? 0 : 1};
-                animation-duration: ${isCombined ? '.2s' : '.2s'};
+                animation-duration: ${(isCombined || isNew) ? '.2s' : '.1s'};
                 animation-delay: ${isNew ? '.2s' : 'none'};
                 animation-timing-function: ease-in;
                 animation-fill-mode: forwards;

@@ -132,7 +132,7 @@ export default function GameBoard({ score, setScore, setBestScore }) {
                 const { movedArray, combinedRowArray, interimScore } = combineTile({ line, isUpDown, resultArray: newArray, direction, rootIndex });
                 totalAddedScore += interimScore;
                 newArray = movedArray;
-                combinedArray = combinedRowArray;
+                combinedArray = combinedArray.concat(combinedRowArray);
             }
         }
         return { newArray, combinedArray, totalAddedScore };
