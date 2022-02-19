@@ -8,6 +8,7 @@ import GlobalStyle from "./styles/GlobalStyle";
 function App() {
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
+  const [reset, setReset] = useState(false);
   useEffect(() => {
     if (bestScore < score) {
       setBestScore(score);
@@ -18,9 +19,9 @@ function App() {
   return (
     <div className="App">
       <GlobalStyle />
-      <Header score={score} bestScore={bestScore} setScore={setScore} />
+      <Header score={score} bestScore={bestScore} reset={reset} setReset={setReset} />
       <Main>
-        <GameBoard score={score} setScore={setScore} setBestScore={setBestScore}></GameBoard>
+        <GameBoard score={score} setScore={setScore} setBestScore={setBestScore} reset={reset} setReset={setReset}></GameBoard>
       </Main>
     </div >
   );

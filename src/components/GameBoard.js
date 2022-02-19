@@ -10,7 +10,7 @@ const defaultArray = Array(BOARD_SIZE * BOARD_SIZE).fill(0);
 function getMaxNumber(numbers) {
     return Math.max.apply(Math, numbers.map(tile => tile.number || 0));
 }
-export default function GameBoard({ score, setScore, setBestScore }) {
+export default function GameBoard({ score, setScore, setBestScore, reset, setReset }) {
     const [gameModal, setGameModal] = useState(null);
     const [numbers, setNumbers] = useState(defaultArray);
     const [prevPosition, setPrevPosition] = useState({});
@@ -47,7 +47,6 @@ export default function GameBoard({ score, setScore, setBestScore }) {
 
 
     useEffect(() => {
-        // setScore(0)
         const storedBestScore = localStorage.getItem(BEST_SCORE_KEY);
         if (storedBestScore)
             setBestScore(storedBestScore);
@@ -66,6 +65,7 @@ export default function GameBoard({ score, setScore, setBestScore }) {
 
     function setInitTile() {
         setBeRemovedTiles([]);
+        setScore(0);
         setGameState(1);
         const newTile = getNewTile(defaultArray, true);
         const newTile2 = getNewTile(defaultArray, newTile.index);
@@ -78,10 +78,8 @@ export default function GameBoard({ score, setScore, setBestScore }) {
     }
 
     useEffect(() => {
-        if (score === 0) {
-            setInitTile()
-        }
-    }, [score])
+        setInitTile()
+    }, [reset])
 
     function setGameState(gameState) {
         if (gameState !== 1) {
@@ -90,11 +88,11 @@ export default function GameBoard({ score, setScore, setBestScore }) {
             switch (gameState) {
                 case 0:
                     message = 'Game Over!';
-                    button = <button className="btn-lose" onClick={() => setScore(0)}>Try again</button>;
+                    button = <button className="btn-lose" onClick={() => setReset(reset => !reset)}>Try again</button>;
                     break;
                 case 8192:
                     message = 'You Win!';
-                    button = <button className="btn-new-game" onClick={setScore(0)}>New Game</button>;
+                    button = <button className="btn-new-game" onClick={() => setReset(reset => !reset)}>New Game</button>;
                     break;
                 default: break;
             }
