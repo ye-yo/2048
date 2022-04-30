@@ -14,6 +14,7 @@
 > 각 타일은 밤하늘과 비슷한 색상을 띄고 있고 숫자가 높아질 수록 다양한 별의 색상을 가진 타일을 확인할 수 있습니다!
 >
 > ### [2048 Night Ver. 바로가기](https://ye-yo.github.io/2048/)
+> ### [블로그 포스팅](https://ye-yo.github.io/toy/2022/02/19/2048-game.html)
 
 ![image](https://user-images.githubusercontent.com/50618754/154789466-cbc469a9-49af-4243-ba51-a93e102184c4.png)
 
